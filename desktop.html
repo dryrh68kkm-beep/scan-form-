@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LP Scan Form — เดสก์ท็อป</title>
+<style>
+:root{
+  --bg:#F3FAFC; --soft:#EDF8FA; --card:#FFFFFF; --input:#F7FAFC;
+  --navy:#14283A; --sec:#6F8492; --muted:#91A1AC;
+  --blue:#22A9E6; --blueStrong:#138FD2; --blueSoft:#E4F5FD;
+  --teal:#20C5BE; --tealStrong:#119E9A; --tealSoft:#E2F8F6;
+  --border:#D7E7EC; --divider:#E8F0F3;
+  --success:#169B75; --warn:#D89A2B; --danger:#D84A43;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--navy);
+  font-family:"Leelawadee UI","Noto Sans Thai",Tahoma,Arial,sans-serif; font-size:15px; line-height:1.5;}
+.wrap{max-width:1180px; margin:0 auto; padding:24px 28px 60px}
+header.app{display:flex; align-items:center; gap:14px; padding:18px 28px; background:var(--bg);
+  position:sticky; top:0; z-index:20; border-bottom:1px solid var(--border)}
+header.app h1{font-size:20px; margin:0; flex:1}
+.badge{font-size:12px; font-weight:700; padding:5px 12px; border-radius:999px; background:var(--blueSoft); color:var(--blueStrong)}
+.tabbar{display:flex; gap:8px; margin-bottom:20px}
+.tabbar button{border:none; background:var(--card); border:1px solid var(--border); padding:10px 18px;
+  border-radius:12px; font-family:inherit; font-size:14px; font-weight:700; color:var(--sec); cursor:pointer}
+.tabbar button.on{background:var(--blue); color:#fff; border-color:var(--blue)}
+.card{background:var(--card); border:1px solid var(--border); border-radius:18px; box-shadow:0 8px 24px rgba(20,40,58,.05);
+  padding:20px; margin-bottom:18px}
+.card h2{margin:0 0 12px; font-size:16px}
+table{width:100%; border-collapse:collapse; font-size:14px}
+th,td{padding:10px 12px; text-align:left; border-bottom:1px solid var(--divider)}
+th{color:var(--sec); font-weight:700; font-size:12.5px; text-transform:uppercase; letter-spacing:.02em}
+tr.row{cursor:pointer}
+tr.row:hover{background:var(--soft)}
+.pill{display:inline-block; font-size:12px; font-weight:700; padding:4px 11px; border-radius:999px}
+.pill.scanning{background:#FDF4E5; color:var(--warn)}
+.pill.ready{background:var(--blueSoft); color:var(--blueStrong)}
+.pill.printed{background:var(--tealSoft); color:var(--tealStrong)}
+.statusfilter{display:flex; gap:8px; margin-bottom:14px}
+.statusfilter button{border:1px solid var(--border); background:var(--card); padding:7px 14px; border-radius:10px;
+  font-family:inherit; font-size:13px; font-weight:600; color:var(--sec); cursor:pointer}
+.statusfilter button.on{background:var(--navy); color:#fff; border-color:var(--navy)}
+.empty{text-align:center; padding:40px; color:var(--muted)}
+.btn{border:none; border-radius:11px; background:var(--blue); color:#fff; font-family:inherit; font-weight:700;
+  font-size:13.5px; padding:9px 16px; cursor:pointer}
+.btn.teal{background:var(--teal)}
+.btn.ghost{background:var(--blueSoft); color:var(--blueStrong)}
+.btn.danger{background:#fff; color:var(--danger); border:1px solid #F0CFCD}
+.field{margin-bottom:14px}
+label.fld{display:block; font-size:13px; font-weight:600; color:var(--sec); margin-bottom:6px}
+input,select{width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:10px; background:var(--input);
+  font-size:14px; font-family:inherit; color:var(--navy)}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.modal{position:fixed; inset:0; background:rgba(20,40,58,.45); display:none; align-items:center; justify-content:center; z-index:60}
+.modal.show{display:flex}
+.modal .inner{background:var(--bg); width:92%; max-width:760px; max-height:86vh; overflow-y:auto; border-radius:18px; padding:24px}
+.tag{font-size:12px; font-weight:600; padding:4px 10px; border-radius:9px; background:var(--soft); color:var(--sec); margin-right:6px}
+.toast{position:fixed; left:50%; transform:translateX(-50%); bottom:26px; z-index:80; background:var(--navy);
+  color:#fff; padding:12px 20px; border-radius:14px; font-size:14px; font-weight:600; opacity:0; transition:opacity .2s; pointer-events:none}
+.toast.show{opacity:.95}
+.filebtn{position:relative; overflow:hidden; display:inline-block}
+.filebtn input[type=file]{position:absolute; inset:0; opacity:0; width:100%; height:100%}
+hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <h1>LP Scan Form — เดสก์ท็อป</h1>
+  <span class="badge" id="syncBadge">กำลังเชื่อมต่อ…</span>
+</header>
+
+<div class="wrap">
+  <div class="tabbar">
+    <button id="tabDocs" class="on" onclick="switchTab('docs')">รายการเอกสาร</button>
+    <button id="tabAdmin" onclick="switchTab('admin')">ผู้ดูแลระบบ</button>
+  </div>
+
+  <section id="viewDocs">
+    <div class="statusfilter">
+      <button class="on" data-f="all" onclick="setFilter('all')">ทั้งหมด</button>
+      <button data-f="scanning" onclick="setFilter('scanning')">กำลังสแกน</button>
+      <button data-f="ready" onclick="setFilter('ready')">พร้อมพิมพ์</button>
+      <button data-f="printed" onclick="setFilter('printed')">พิมพ์แล้ว</button>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>เลขที่เอกสาร</th><th>พนักงาน</th><th>ประเภท</th><th>วันที่</th><th>จำนวนรายการ</th><th>สถานะ</th></tr></thead>
+        <tbody id="docsBody"></tbody>
+      </table>
+      <div class="empty" id="docsEmpty" style="display:none">ยังไม่มีเอกสาร</div>
+    </div>
+  </section>
+
+  <section id="viewAdmin" style="display:none">
+    <div class="card">
+      <h2>อัปโหลดฐานข้อมูลสินค้า (CSV)</h2>
+      <p class="tag" style="margin-bottom:12px">หัวคอลัมน์: BARCODE, ชื่อสินค้า, ราคา, หน่วย — บันทึกจาก Excel เป็น CSV UTF-8</p>
+      <div class="filebtn"><button class="btn ghost" type="button">เลือกไฟล์ CSV…</button>
+        <input type="file" accept=".csv,text/csv" onchange="uploadProducts(this)"></div>
+      <p id="productsMsg" style="margin-top:10px;color:var(--sec);font-size:13px"></p>
+    </div>
+    <div class="card">
+      <h2>รายชื่อพนักงาน</h2>
+      <div class="row2">
+        <div class="field"><label class="fld">รหัสพนักงาน</label><input id="newEmpCode"></div>
+        <div class="field"><label class="fld">ชื่อ-สกุล</label><input id="newEmpName"></div>
+      </div>
+      <button class="btn" onclick="addEmployee()">เพิ่มพนักงาน</button>
+      <hr class="d">
+      <table>
+        <thead><tr><th>รหัส</th><th>ชื่อ</th><th></th></tr></thead>
+        <tbody id="empBody"></tbody>
+      </table>
+      <div class="empty" id="empEmpty" style="display:none">ยังไม่มีรายชื่อพนักงาน</div>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="docModal">
+  <div class="inner">
+    <h2 id="modalTitle">เอกสาร</h2>
+    <div class="row2">
+      <div class="field"><label class="fld">สาขา</label><input id="mBranch"></div>
+      <div class="field"><label class="fld">แผนก</label><input id="mDept"></div>
+    </div>
+    <table>
+      <thead id="modalHead"></thead>
+      <tbody id="modalBody"></tbody>
+    </table>
+    <hr class="d">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+      <button class="btn" onclick="saveModalMeta()">บันทึกการแก้ไข</button>
+      <span id="downloadBtns" style="display:flex; gap:10px; flex-wrap:wrap"></span>
+      <button class="btn ghost" onclick="closeModal()">ปิด</button>
+    </div>
+    <p class="tag" id="downloadInfo" style="margin-top:12px"></p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="vendor/jszip.min.js"></script>
+<script src="firebase-config.js"></script>
+<script src="js/firestore.js"></script>
+<script src="js/export.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show');
+  clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove('show'),2200); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+const D = { docs:[], filter:'all', employees:[], modalDoc:null };
+const STATUS_LABEL = {scanning:'กำลังสแกน', ready:'พร้อมพิมพ์', printed:'พิมพ์แล้ว'};
+
+function switchTab(t){
+  $('tabDocs').classList.toggle('on', t==='docs');
+  $('tabAdmin').classList.toggle('on', t==='admin');
+  $('viewDocs').style.display = t==='docs'?'block':'none';
+  $('viewAdmin').style.display = t==='admin'?'block':'none';
+  if(t==='admin') loadEmployees();
+}
+function setFilter(f){
+  D.filter=f;
+  document.querySelectorAll('.statusfilter button').forEach(b=>b.classList.toggle('on', b.dataset.f===f));
+  renderDocs();
+}
+
+/* ---------- โหลดรายการเอกสาร (poll ทุก 4 วิ ให้ใกล้เคียง real-time — REST API ไม่มี live listener) ---------- */
+async function loadDocs(){
+  try{
+    D.docs = await window.fsList('documents');
+    D.docs.sort((a,b)=> (b.updatedAt? new Date(b.updatedAt):0) - (a.updatedAt? new Date(a.updatedAt):0));
+    $('syncBadge').textContent='ออนไลน์ · อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH');
+    $('syncBadge').style.background='var(--tealSoft)'; $('syncBadge').style.color='var(--tealStrong)';
+    renderDocs();
+  }catch(e){
+    $('syncBadge').textContent='เชื่อมต่อไม่ได้'; $('syncBadge').style.background='#FDF4E5'; $('syncBadge').style.color='var(--warn)';
+  }
+}
+function renderDocs(){
+  const rows = D.filter==='all' ? D.docs : D.docs.filter(d=>d.status===D.filter);
+  if(!rows.length){ $('docsBody').innerHTML=''; $('docsEmpty').style.display='block'; return; }
+  $('docsEmpty').style.display='none';
+  $('docsBody').innerHTML = rows.map(d=>
+    '<tr class="row" onclick="openDoc(\''+d._id+'\')">'+
+      '<td>'+esc(d._id)+'</td>'+
+      '<td>'+esc(d.employeeName||d.employeeCode)+' ('+esc(d.employeeCode)+')</td>'+
+      '<td>'+esc(d.mode)+'</td>'+
+      '<td>'+esc(d.date)+'</td>'+
+      '<td>'+(d.itemCount||0)+'</td>'+
+      '<td><span class="pill '+d.status+'">'+(STATUS_LABEL[d.status]||d.status)+'</span></td>'+
+    '</tr>'
+  ).join('');
+}
+
+/* ---------- เปิดดู/แก้ไขเอกสาร ---------- */
+function openDoc(id){
+  const d = D.docs.find(x=>x._id===id); if(!d) return;
+  D.modalDoc = JSON.parse(JSON.stringify(d));
+  $('modalTitle').textContent = id+' — '+STATUS_LABEL[d.status];
+  $('mBranch').value = d.branch||''; $('mDept').value = d.dept||'';
+  const isRTC = d.mode==='RTC';
+  $('modalHead').innerHTML = isRTC
+    ? '<tr><th>บาร์โค้ด</th><th>สินค้า</th><th>หน่วย</th><th>ราคา</th><th>%</th><th>จำนวน</th><th>ราคาใหม่</th></tr>'
+    : '<tr><th>บาร์โค้ด</th><th>สินค้า</th><th>Code</th><th>จำนวน</th><th>เหตุผล</th></tr>';
+  $('modalBody').innerHTML = (d.items||[]).map((it,i)=> isRTC
+    ? '<tr><td>'+esc(it.bc)+'</td><td>'+esc(it.name)+'</td><td>'+esc(it.unit)+'</td><td>'+it.price+'</td>'+
+      '<td>'+Math.round(it.pct*100)+'%</td><td>'+it.qty+'</td><td>'+it.newPrice+'</td></tr>'
+    : '<tr><td>'+esc(it.bc)+'</td><td>'+esc(it.name)+'</td><td>'+it.code+'</td><td>'+it.qty+'</td><td>'+esc(it.reason||'')+'</td></tr>'
+  ).join('');
+  $('downloadInfo').textContent = 'ดาวน์โหลดแล้ว '+(d.downloadCount||0)+' ครั้ง';
+  renderDownloadBtns(d);
+  $('docModal').classList.add('show');
+}
+function closeModal(){ $('docModal').classList.remove('show'); D.modalDoc=null; }
+async function saveModalMeta(){
+  if(!D.modalDoc) return;
+  try{
+    await window.fsUpdate('documents', D.modalDoc._id, {branch:$('mBranch').value.trim(), dept:$('mDept').value.trim()});
+    toast('บันทึกการแก้ไขแล้ว');
+    loadDocs();
+  }catch(e){ toast('บันทึกไม่สำเร็จ — ตรวจการเชื่อมต่อ'); }
+}
+
+/* ---------- ดาวน์โหลด Excel (ยึดฟอร์มต้นฉบับผ่าน export.js — ใช้ตัวเดียวกับมือถือ) ----------
+ * หนึ่งเอกสาร = หนึ่งไฟล์ดาวน์โหลดเสมอ (ใช้ buildExportPackage) — เอกสารที่เกิน 43/20 รายการ
+ * จะถูกห่อเป็น .zip ไฟล์เดียว (มีหลาย .xlsx ข้างในตามจำนวนหน้า) แทนการกดดาวน์โหลดทีละหน้า */
+function renderDownloadBtns(d){
+  $('downloadBtns').innerHTML = '<button class="btn teal" onclick="downloadDoc()">ดาวน์โหลด (.xlsx)</button>';
+}
+async function downloadDoc(){
+  if(!D.modalDoc) return;
+  const d = D.modalDoc;
+  if((d.downloadCount||0) > 0){
+    if(!confirm('เอกสารนี้เคยดาวน์โหลดไปแล้ว '+d.downloadCount+' ครั้ง ต้องการดาวน์โหลดซ้ำหรือไม่?')) return;
+  }
+  try{
+    const meta = {branch:$('mBranch').value.trim(), dept:$('mDept').value.trim(), date:d.date, docId:d._id};
+    const {blob, filename} = await window.buildExportPackage(d.mode, d.items||[], meta);
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+
+    const newCount = (d.downloadCount||0)+1;
+    await window.fsUpdate('documents', d._id, {status:'printed', downloadCount:newCount, printedAt:new Date()});
+    toast('ดาวน์โหลดแล้ว (ครั้งที่ '+newCount+') — เปลี่ยนสถานะเป็นพิมพ์แล้ว');
+    D.modalDoc.downloadCount = newCount; D.modalDoc.status='printed';
+    $('downloadInfo').textContent = 'ดาวน์โหลดแล้ว '+newCount+' ครั้ง';
+    loadDocs();
+  }catch(e){ console.error(e); toast('ดาวน์โหลดไม่สำเร็จ: '+e.message); }
+}
+
+/* ---------- แอดมิน: พนักงาน ---------- */
+async function loadEmployees(){
+  try{
+    const all = await window.fsList('employees');
+    D.employees = all.filter(e=>e.active!==false);
+    D.employees.sort((a,b)=> String(a._id).localeCompare(String(b._id)));
+    renderEmployees();
+  }catch(e){ toast('โหลดรายชื่อพนักงานไม่สำเร็จ'); }
+}
+function renderEmployees(){
+  if(!D.employees.length){ $('empBody').innerHTML=''; $('empEmpty').style.display='block'; return; }
+  $('empEmpty').style.display='none';
+  $('empBody').innerHTML = D.employees.map(e=>
+    '<tr><td>'+esc(e._id)+'</td><td>'+esc(e.name)+'</td>'+
+    '<td><button class="btn danger" onclick="removeEmployee(\''+e._id+'\')">ลบ</button></td></tr>'
+  ).join('');
+}
+window.addEmployee = async function(){
+  const code=$('newEmpCode').value.trim(), name=$('newEmpName').value.trim();
+  if(!code||!name){ toast('กรอกรหัสและชื่อให้ครบ'); return; }
+  try{
+    await window.fsUpsert('employees', code, {name, active:true});
+    $('newEmpCode').value=''; $('newEmpName').value='';
+    toast('เพิ่มพนักงานแล้ว'); loadEmployees();
+  }catch(e){ toast('เพิ่มไม่สำเร็จ — ตรวจการเชื่อมต่อ'); }
+};
+window.removeEmployee = async function(code){
+  // ใช้ soft-delete (active:false) แทนการลบจริง — Firestore Rules ห้าม delete จาก client แล้ว
+  // (ป้องกัน Anonymous user คนใดก็ได้ลบข้อมูลทิ้งถาวร) พนักงานที่ active:false จะถูกกรองออกจาก
+  // รายการนี้และล็อกอินฝั่งมือถือไม่ได้
+  if(!confirm('ลบพนักงาน '+code+' ออกจากระบบ?')) return;
+  try{ await window.fsUpdate('employees', code, {active:false}); toast('ลบแล้ว'); loadEmployees(); }
+  catch(e){ toast('ลบไม่สำเร็จ'); }
+};
+
+/* ---------- แอดมิน: อัปโหลดฐานข้อมูลสินค้า ---------- */
+function parseCSV(txt){
+  txt = txt.replace(/^﻿/,'');
+  const sep = (txt.split('\n')[0].split('\t').length > txt.split('\n')[0].split(',').length) ? '\t' : ',';
+  const rows=[]; let row=[], cur='', q=false;
+  for(let i=0;i<txt.length;i++){
+    const c=txt[i];
+    if(q){ if(c==='"'){ if(txt[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===sep){ row.push(cur); cur=''; }
+    else if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+    else if(c!=='\r') cur+=c;
+  }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r=>r.some(x=>String(x).trim()!==''));
+}
+// ห้ามตัดเลข 0 นำหน้าออก — บาร์โค้ดจริง (เช่น EAN-13) มีความหมายทุกหลักรวมถึง 0 นำหน้า
+function normBc(v){ return String(v==null?'':v).replace(/\D/g,''); }
+window.uploadProducts = async function(inp){
+  const f=inp.files[0]; if(!f) return;
+  $('productsMsg').textContent='กำลังอ่านไฟล์…';
+  try{
+    const rows=parseCSV(await f.text());
+    const h=(rows[0]||[]).map(x=>String(x||'').trim().toUpperCase());
+    const find=ks=>h.findIndex(x=>ks.some(k=>x.indexOf(k)>=0));
+    const iB=find(['BARCODE','บาร์โค้ด']), iN=find(['NAME','ชื่อ','DESC']),
+          iP=find(['PRICE','ราคา']), iU=find(['UNIT','หน่วย']);
+    if(iB<0){ $('productsMsg').textContent='ไม่พบคอลัมน์ BARCODE'; return; }
+    let ok=0, total=0;
+    for(let i=1;i<rows.length;i++){
+      const bc=normBc(rows[i][iB]); if(!bc) continue;
+      total++;
+      const o={};
+      if(iN>=0&&rows[i][iN]) o.name=String(rows[i][iN]).trim();
+      if(iP>=0&&rows[i][iP]) o.price=Number(String(rows[i][iP]).replace(/[^\d.-]/g,''));
+      if(iU>=0&&rows[i][iU]) o.unit=String(rows[i][iU]).trim();
+      o.updatedAt=new Date();
+      try{ await window.fsUpsert('products', bc, o); ok++; }catch(e){}
+      if(total%50===0) $('productsMsg').textContent='กำลังอัปโหลด… '+ok+'/'+total;
+    }
+    $('productsMsg').textContent='อัปโหลดสำเร็จ '+ok+'/'+total+' รายการ';
+    toast('อัปเดตฐานข้อมูลสินค้าแล้ว');
+  }catch(e){ console.error(e); $('productsMsg').textContent='อ่านไฟล์ไม่สำเร็จ'; }
+};
+
+/* ---------- init ---------- */
+async function init(){
+  try{ await window.fsAutoLogin(); }catch(e){}
+  await loadDocs();
+  setInterval(loadDocs, 4000);
+}
+window.addEventListener('load', init);
+</script>
+</body>
+</html>

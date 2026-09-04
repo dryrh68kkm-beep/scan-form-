@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#08743F">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>LP Scan Form — ADJ / RTC</title>
+<style>
+:root{
+  --bg:#F3FAFC; --soft:#EDF8FA; --card:#FFFFFF; --input:#F7FAFC;
+  --navy:#14283A; --sec:#6F8492; --muted:#91A1AC;
+  --blue:#22A9E6; --blueStrong:#138FD2; --blueSoft:#E4F5FD;
+  --teal:#20C5BE; --tealStrong:#119E9A; --tealSoft:#E2F8F6;
+  --border:#D7E7EC; --divider:#E8F0F3;
+  --success:#169B75; --warn:#D89A2B; --danger:#D84A43;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--bg); color:var(--navy);
+  font-family:"Leelawadee UI","Noto Sans Thai",Tahoma,Arial,sans-serif;
+  font-size:16px; line-height:1.5; padding-bottom:calc(84px + env(safe-area-inset-bottom));}
+.wrap{padding:0 20px; max-width:520px; margin:0 auto}
+header.app{padding:calc(14px + env(safe-area-inset-top)) 20px 12px; display:flex;
+  align-items:center; gap:12px; position:sticky; top:0; background:var(--bg); z-index:20}
+header.app h1{font-size:19px; font-weight:700; margin:0; flex:1}
+.app-mark{width:42px;height:42px;border-radius:13px;display:block;flex:0 0 auto;box-shadow:0 4px 12px rgba(8,116,63,.18)}
+.badge{font-size:12px; font-weight:700; padding:5px 12px; border-radius:999px; background:var(--blueSoft); color:var(--blueStrong)}
+.badge.rtc{background:var(--tealSoft); color:var(--tealStrong)}
+.card{background:var(--card); border:1px solid var(--border); border-radius:22px;
+  box-shadow:0 8px 24px rgba(20,40,58,.05); padding:20px; margin-bottom:16px}
+.card h2{font-size:17px; margin:0 0 6px; font-weight:700}
+.card p.help{margin:0; color:var(--sec); font-size:14px}
+.mode-card{display:flex; align-items:center; gap:16px; cursor:pointer; transition:transform .15s}
+.mode-card:active{transform:scale(.98)}
+.icon{width:56px; height:56px; border-radius:18px; display:flex; align-items:center;
+  justify-content:center; font-size:20px; font-weight:800; flex:0 0 auto}
+.icon.blue{background:var(--blueSoft); color:var(--blueStrong)}
+.icon.teal{background:var(--tealSoft); color:var(--tealStrong)}
+.status{font-size:13px; margin-top:6px; font-weight:600}
+.status.ok{color:var(--success)} .status.no{color:var(--warn)}
+label.fld{display:block; font-size:13px; font-weight:600; color:var(--sec); margin:0 0 6px}
+input,select{width:100%; height:52px; background:var(--input); border:1px solid var(--border);
+  border-radius:13px; padding:0 14px; font-size:16px; color:var(--navy); font-family:inherit; outline:none}
+input:focus,select:focus{border-color:var(--blue)}
+.row2{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px}
+.field{margin-bottom:16px}
+.btn{display:block; width:100%; height:52px; border:none; border-radius:15px; background:var(--blue);
+  color:#fff; font-size:16px; font-weight:700; font-family:inherit; cursor:pointer; transition:transform .15s}
+.btn:active{transform:scale(.98)}
+.btn.teal{background:var(--teal)}
+.btn.sec{background:var(--blueSoft); color:var(--blueStrong)}
+.btn.ghost{background:#fff; color:var(--navy); border:1px solid var(--border)}
+.btn.danger{background:#fff; color:var(--danger); border:1px solid #F0CFCD}
+.btnrow{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px}
+.chips{display:flex; flex-wrap:wrap; gap:8px}
+.chip{padding:9px 14px; border-radius:12px; background:var(--input); border:1px solid var(--border);
+  font-size:14px; font-weight:600; color:var(--navy); cursor:pointer; min-height:44px; display:flex; align-items:center}
+.chip.on{background:var(--blue); border-color:var(--blue); color:#fff}
+.chip.on.teal{background:var(--teal); border-color:var(--teal)}
+.filebtn{position:relative; overflow:hidden; display:block}
+.filebtn input[type=file]{position:absolute; inset:0; opacity:0; width:100%; height:100%}
+#reader{width:100%; border-radius:20px; overflow:hidden; background:#0b1a26; min-height:250px}
+#reader video{width:100%!important; display:block}
+.scanhint{text-align:center; color:var(--sec); font-size:14px; margin:12px 0}
+nav.tabs{position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--border);
+  display:flex; padding:8px 12px calc(8px + env(safe-area-inset-bottom)); z-index:30}
+nav.tabs button{flex:1; background:none; border:none; font-family:inherit; font-size:12px;
+  font-weight:600; color:var(--muted); padding:8px 4px; border-radius:14px; cursor:pointer}
+nav.tabs button.on{background:var(--blueSoft); color:var(--blueStrong)}
+nav.tabs .tl{display:block; font-size:18px; margin-bottom:2px}
+.item{background:#fff; border:1px solid var(--border); border-radius:18px; padding:14px 16px; margin-bottom:10px}
+.item .top{display:flex; gap:10px; align-items:flex-start}
+.item .no{font-size:13px; font-weight:700; color:var(--muted); min-width:22px}
+.item .nm{flex:1; font-weight:600; font-size:15px; line-height:1.35}
+.item .bc{font-size:12.5px; color:var(--sec); margin-top:2px; font-variant-numeric:tabular-nums}
+.item .meta{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+.tag{font-size:12px; font-weight:600; padding:4px 10px; border-radius:9px; background:var(--soft); color:var(--sec)}
+.tag.k{background:var(--blueSoft); color:var(--blueStrong)}
+.tag.t{background:var(--tealSoft); color:var(--tealStrong)}
+.item .acts{display:flex; gap:8px; margin-top:12px}
+.item .acts button{flex:1; height:40px; border-radius:11px; border:1px solid var(--border);
+  background:#fff; font-family:inherit; font-size:13.5px; font-weight:600; color:var(--navy)}
+.item .acts button.del{color:var(--danger); border-color:#F0CFCD}
+.empty{text-align:center; padding:44px 20px; color:var(--muted)}
+.empty .e{font-size:38px; opacity:.35}
+.empty h3{font-size:16px; margin:12px 0 4px; color:var(--sec)}
+.sheet{position:fixed; inset:0; background:rgba(20,40,58,.4); z-index:50; display:none; align-items:flex-end; justify-content:center}
+.sheet.show{display:flex}
+.sheet .inner{background:var(--bg); width:100%; max-width:520px; border-radius:26px 26px 0 0;
+  padding:20px 20px calc(20px + env(safe-area-inset-bottom)); max-height:92vh; overflow-y:auto}
+.sheet h2{margin:0 0 4px; font-size:18px}
+.prodbox{background:var(--blueSoft); border-radius:16px; padding:14px; margin-bottom:16px}
+.prodbox .nm{font-weight:700; font-size:15px}
+.prodbox .bc{font-size:13px; color:var(--blueStrong); margin-top:3px; font-variant-numeric:tabular-nums}
+.prodbox.warn{background:#FDF4E5}
+.calc{background:var(--tealSoft); border-radius:14px; padding:12px 14px; margin-bottom:16px;
+  display:flex; justify-content:space-between; align-items:center}
+.calc b{font-size:20px; color:var(--tealStrong)}
+.note{font-size:13px; color:var(--sec); background:var(--soft); border-radius:14px; padding:12px 14px; margin-bottom:16px}
+.toast{position:fixed; left:50%; transform:translateX(-50%); bottom:100px; z-index:80; background:var(--navy);
+  color:#fff; padding:12px 20px; border-radius:14px; font-size:14px; font-weight:600;
+  opacity:0; transition:opacity .2s; pointer-events:none; max-width:88%}
+.toast.show{opacity:.95}
+hr.d{border:none; border-top:1px solid var(--divider); margin:18px 0}
+
+/* ---------- compact two-card home ---------- */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.home-heading{font-size:24px;line-height:1.25;margin:18px 0 18px;font-weight:800;letter-spacing:-.02em}
+.mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}
+button.mode-tile{appearance:none;-webkit-appearance:none;width:100%;min-width:0;padding:0 0 18px;background:#fff;border:1px solid var(--border);border-radius:20px;overflow:hidden;color:var(--navy);font:inherit;text-align:center;cursor:pointer;box-shadow:0 8px 22px rgba(20,40,58,.045);transition:transform .15s,border-color .15s,box-shadow .15s}
+button.mode-tile:active{transform:scale(.975)}
+button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-offset:3px}
+.mode-art{width:100%;aspect-ratio:1/1;overflow:hidden;background:var(--soft)}
+.mode-art img{display:block;width:100%;height:100%;object-fit:cover}
+.mode-copy{padding:14px 9px 0;display:flex;min-height:210px;flex-direction:column;align-items:center}
+.mode-code{font-size:31px;line-height:1;font-weight:850;letter-spacing:.02em;margin:0 0 12px}
+.mode-title{font-size:15px;line-height:1.35;font-weight:750;margin:0 0 4px}
+.mode-sub{font-size:12.5px;line-height:1.35;color:var(--sec);margin:0}
+.mode-cap{font-size:13px;font-weight:700;color:var(--success);margin:auto 0 12px}
+.mode-open{display:inline-flex;align-items:center;justify-content:center;min-width:72px;height:38px;padding:0 16px;border-radius:999px;background:var(--success);color:#fff;font-size:13px;font-weight:750}
+.home-meta{display:flex;align-items:center;justify-content:center;gap:10px;margin:16px 0 0;color:var(--sec);font-size:12.5px}
+.home-meta button{appearance:none;border:0;background:transparent;padding:8px;color:var(--success);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+@media(max-width:360px){
+  .wrap{padding-left:14px;padding-right:14px}
+  .mode-grid{gap:9px}
+  .mode-copy{padding-left:6px;padding-right:6px;min-height:202px}
+  .mode-code{font-size:27px}
+  .mode-title{font-size:14px}
+  .mode-sub,.mode-cap{font-size:11.5px}
+}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <img class="app-mark" src="assets/app-mark.webp" alt="" width="96" height="96">
+  <h1 id="appTitle">LP Scan Form</h1>
+  <span class="badge" id="syncBadge" style="display:none"></span>
+  <span class="badge" id="modeBadge" style="display:none"></span>
+</header>
+
+<section id="vLogin" class="wrap">
+  <div class="card">
+    <h2>เข้าสู่ระบบ</h2>
+    <p class="help">กรอกรหัสพนักงานเพื่อเริ่มงาน — ระบบจะตรวจกับรายชื่อพนักงานก่อนเสมอ</p>
+    <div class="field" style="margin-top:16px">
+      <label class="fld">รหัสพนักงาน</label>
+      <input id="fEmpCode" placeholder="เช่น E1023" autocapitalize="characters">
+    </div>
+    <button class="btn" onclick="checkEmployee()">เริ่มงาน</button>
+    <p class="help" id="loginMsg" style="margin-top:12px;color:var(--danger)"></p>
+  </div>
+</section>
+
+<section id="vHome" class="wrap" style="display:none" aria-labelledby="homeHeading">
+  <h2 class="home-heading" id="homeHeading">เลือกแบบฟอร์ม</h2>
+
+  <div class="mode-grid">
+    <button class="mode-tile" type="button" onclick="pickMode('ADJ')" aria-label="เปิดใบแก้ไขรายการ Adjust code">
+      <div class="mode-art">
+        <img src="assets/adj-card.webp" alt="" width="480" height="480">
+      </div>
+      <div class="mode-copy">
+        <div class="mode-code">ADJ</div>
+        <div class="mode-title">ใบแก้ไขรายการ</div>
+        <p class="mode-sub">Adjust code</p>
+        <div class="mode-cap">43 บรรทัด/หน้า</div>
+        <span class="mode-open">เปิดฟอร์ม</span>
+      </div>
+    </button>
+
+    <button class="mode-tile" type="button" onclick="pickMode('RTC')" aria-label="เปิดฟอร์มลดราคา Markdown Price">
+      <div class="mode-art">
+        <img src="assets/rtc-card.webp" alt="" width="480" height="480">
+      </div>
+      <div class="mode-copy">
+        <div class="mode-code">RTC</div>
+        <div class="mode-title">ฟอร์มลดราคา</div>
+        <p class="mode-sub">Markdown Price</p>
+        <div class="mode-cap">20 บรรทัด/หน้า</div>
+        <span class="mode-open">เปิดฟอร์ม</span>
+      </div>
+    </button>
+  </div>
+
+  <div class="home-meta" aria-live="polite">
+    <span id="empInfo">—</span>
+    <span aria-hidden="true">·</span>
+    <button type="button" onclick="logoutEmployee()">เปลี่ยนพนักงาน</button>
+  </div>
+  <div class="sr-only" aria-live="polite">
+    <span id="masterInfo">กำลังเตรียมข้อมูล…</span>
+  </div>
+</section>
+
+<section id="vScan" class="wrap" style="display:none">
+  <div class="card" style="padding:14px">
+    <div id="reader"></div>
+    <div class="scanhint" id="scanHint">กำลังเปิดกล้อง…</div>
+    <div class="btnrow">
+      <button class="btn sec" onclick="manualEntry()">พิมพ์บาร์โค้ดเอง</button>
+      <button class="btn ghost" onclick="toggleCam()" id="camBtn">ปิดกล้อง</button>
+    </div>
+  </div>
+  <div class="note" id="scanCount">ยังไม่มีรายการ</div>
+</section>
+
+<section id="vList" class="wrap" style="display:none">
+  <div class="card">
+    <h2>ข้อมูลหัวฟอร์ม</h2>
+    <div class="field"><label class="fld">สาขา</label><input id="fBranch" placeholder="ไทรน้อย 11252"></div>
+    <div class="row2">
+      <div class="field"><label class="fld">แผนก</label><input id="fDept" placeholder="Dry Food"></div>
+      <div class="field"><label class="fld">วันที่</label><input id="fDate" type="date"></div>
+    </div>
+  </div>
+  <div id="listBox"></div>
+  <div class="card" id="expBox">
+    <h2 id="finishTitle">จบเอกสาร</h2>
+    <p class="help" id="expInfo" style="margin-bottom:14px"></p>
+    <button class="btn" id="finishBtn" style="margin-bottom:10px" onclick="finishDocument()">บันทึกและจบเอกสาร</button>
+    <button class="btn danger" onclick="clearAll()">ล้างรายการทั้งหมด</button>
+  </div>
+</section>
+
+<div class="sheet" id="sheet">
+  <div class="inner">
+    <h2 id="shTitle">เพิ่มรายการ</h2>
+    <div class="prodbox" id="shProd">
+      <div class="nm" id="shName">—</div>
+      <div class="bc" id="shBc"></div>
+    </div>
+    <div class="field" id="wrapManualName" style="display:none">
+      <label class="fld">ชื่อสินค้า (ไม่พบในรายการ — พิมพ์เอง)</label>
+      <input id="fName" placeholder="ชื่อสินค้า">
+    </div>
+
+    <div id="adjFields">
+      <div class="field">
+        <label class="fld">Adjust code</label>
+        <div class="chips" id="codeChips"></div>
+        <input id="fCode" type="number" inputmode="numeric" placeholder="หรือพิมพ์โค้ดเอง" style="margin-top:10px">
+      </div>
+      <div class="row2">
+        <div class="field"><label class="fld">จำนวนชิ้น</label>
+          <input id="fQty" type="number" inputmode="numeric" placeholder="เช่น -1"></div>
+        <div class="field"><label class="fld">วันหมดอายุ</label><input id="fExp" type="date"></div>
+      </div>
+      <div class="field">
+        <label class="fld">เหตุผล</label>
+        <div class="chips" id="reasonChips"></div>
+        <input id="fReason" placeholder="หรือพิมพ์เอง" style="margin-top:10px">
+      </div>
+    </div>
+
+    <div id="rtcFields" style="display:none">
+      <div class="row2">
+        <div class="field"><label class="fld">หน่วยขาย</label><input id="fUnit" value="ชิ้น"></div>
+        <div class="field"><label class="fld">ราคาขาย (บาท)</label>
+          <input id="fPrice" type="number" inputmode="decimal" step="0.01"></div>
+      </div>
+      <div class="field">
+        <label class="fld">% ลดราคา</label>
+        <div class="chips" id="pctChips"></div>
+        <input id="fPct" type="number" inputmode="numeric" placeholder="หรือพิมพ์ % เอง" style="margin-top:10px">
+      </div>
+      <div class="calc"><span>ราคาที่ปรับ (ปัดขึ้น)</span><b id="shCalc">—</b></div>
+      <div class="row2">
+        <div class="field"><label class="fld">จำนวน (ชิ้น)</label>
+          <input id="fRQty" type="number" inputmode="numeric" value="1"></div>
+        <div class="field"><label class="fld">วันหมดอายุ</label><input id="fRExp" type="date"></div>
+      </div>
+    </div>
+
+    <div class="btnrow" style="margin-top:4px">
+      <button class="btn ghost" onclick="closeSheet()">ยกเลิก</button>
+      <button class="btn" id="saveBtn" onclick="saveItem()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<nav class="tabs" id="tabs" style="display:none">
+  <button id="tabScan" onclick="go('scan')"><span class="tl">▣</span>สแกน</button>
+  <button id="tabList" onclick="go('list')"><span class="tl">☰</span>รายงาน</button>
+  <button onclick="go('home')"><span class="tl">⇄</span>เปลี่ยนโหมด</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="firebase-config.js"></script>
+<script src="js/firestore.js"></script>
+<script src="js/export.js"></script>
+<script>
+const CODES = [
+  {c:8 ,t:'8 ขายผิดบาร์โค้ด'},{c:9 ,t:'9 De-pack/Re-pack'},{c:10,t:'10 รับผิดจำนวน'},
+  {c:11,t:'11 ขายล่วงหน้า B2B'},{c:13,t:'13 ประมูลชำรุด'},{c:21,t:'21 ชำรุด/เน่าเสีย'},
+  {c:22,t:'22 ขาดส่งจาก DC'},{c:23,t:'23 ผลต่างนับประจำวัน'},{c:25,t:'25 หมดอายุ'}
+];
+const REASONS = ['หมดอายุ','ชำรุด/เน่าเสีย','ขายผิดบาร์โค้ด','ขาดส่งจาก DC','ผลต่างตรวจนับ','De-pack/Re-pack'];
+const PCTS = [20,25,30,50,75];
+
+const S = { mode:null, view:'home', master:{}, items:{ADJ:[], RTC:[]},
+  edit:null, pending:null, scanner:null, camOn:false, lastScan:{code:'',t:0}, ready:false,
+  employee:null, docId:null, locked:false, online:false };
+
+const $ = id => document.getElementById(id);
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show');
+  clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove('show'),1900); }
+// ห้ามตัดเลข 0 นำหน้าออก — บาร์โค้ดจริง (เช่น EAN-13) มีความหมายทุกหลักรวมถึง 0 นำหน้า
+function normBc(v){ return String(v==null?'':v).replace(/\D/g,''); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function thDate(iso){ if(!iso) return ''; const p=iso.split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; }
+function roundUpPrice(price,pct){ return Math.ceil(Number((price-(price*pct)).toFixed(6))); }
+
+function loadScript(urls){
+  return new Promise((res,rej)=>{ let i=0;
+    const nx=()=>{ if(i>=urls.length) return rej(new Error('load fail'));
+      const s=document.createElement('script'); s.src=urls[i++]; s.onload=()=>res(); s.onerror=nx;
+      document.head.appendChild(s); };
+    nx(); });
+}
+const LIB = {
+  jszip:['vendor/jszip.min.js'],
+  qr:['vendor/html5-qrcode.min.js']
+};
+let libP={}; function need(k){ if(!libP[k]) libP[k]=loadScript(LIB[k]); return libP[k]; }
+
+/* ---------- ฐานข้อมูลสินค้า: โหลดจาก Firestore กลาง (cache ไว้ใน localStorage สำหรับโหมดออฟไลน์) ---------- */
+function setSyncBadge(state){
+  const b=$('syncBadge'); b.style.display='inline-block';
+  if(state==='online'){ b.textContent='ออนไลน์'; b.style.background='var(--tealSoft)'; b.style.color='var(--tealStrong)'; }
+  else if(state==='syncing'){ b.textContent='กำลังซิงก์…'; b.style.background='var(--blueSoft)'; b.style.color='var(--blueStrong)'; }
+  else if(state==='draft'){
+    b.textContent=S.online?'ร่างในมือถือ':'ร่างออฟไลน์';
+    b.style.background='#FDF4E5'; b.style.color='var(--warn)';
+  }
+  else { b.textContent='ออฟไลน์'; b.style.background='#FDF4E5'; b.style.color='var(--warn)'; }
+}
+function loadProductsFromCache(){
+  try{ S.master = JSON.parse(localStorage.getItem('lpsf_products_cache')||'{}'); }catch(e){ S.master={}; }
+}
+async function loadProductsFromFirestore(){
+  const rows = await window.fsList('products');
+  const map={};
+  rows.forEach(r=>{ map[r._id]={name:r.name, price:r.price, unit:r.unit}; });
+  S.master = map;
+  try{ localStorage.setItem('lpsf_products_cache', JSON.stringify(map)); }catch(e){}
+}
+
+/* ---------- local draft + finished queue ---------- */
+function docSnapshot(status){
+  return {
+    mode:S.mode, employeeCode:S.employee.code, employeeName:S.employee.name,
+    branch:$('fBranch').value.trim(), dept:$('fDept').value.trim(), date:$('fDate').value,
+    status:status || 'scanning',
+    itemCount:S.items[S.mode].length, items:S.items[S.mode],
+    updatedAt:new Date().toISOString()
+  };
+}
+function draftKey(code){ return 'lpsf_draft_doc_'+code; }
+function saveDraft(){
+  if(!S.docId||!S.employee) return;
+  try{ localStorage.setItem(draftKey(S.employee.code), JSON.stringify({id:S.docId, doc:docSnapshot('scanning')})); }catch(e){}
+  setSyncBadge('draft');
+}
+function loadDraft(code){
+  try{ return JSON.parse(localStorage.getItem(draftKey(code))||'null'); }catch(e){ return null; }
+}
+function clearDraft(code){
+  try{ localStorage.removeItem(draftKey(code)); }catch(e){}
+}
+function loadFinishedQueue(){
+  try{ const q=JSON.parse(localStorage.getItem('lpsf_finished_queue')||'[]'); return Array.isArray(q)?q:[]; }
+  catch(e){ return []; }
+}
+function saveFinishedQueue(q){
+  try{ localStorage.setItem('lpsf_finished_queue',JSON.stringify(q)); }catch(e){}
+}
+function enqueueFinished(entry){
+  const q=loadFinishedQueue(), i=q.findIndex(x=>x.id===entry.id);
+  if(i>=0) q[i]=entry; else q.push(entry);
+  saveFinishedQueue(q);
+}
+function migrateLegacyPending(){
+  let old; try{ old=JSON.parse(localStorage.getItem('lpsf_pending_doc')||'null'); }catch(e){ old=null; }
+  if(!old||!old.id||!old.doc) return;
+  try{
+    if(old.doc.status==='ready') enqueueFinished(old);
+    else if(old.doc.employeeCode && !loadDraft(old.doc.employeeCode))
+      localStorage.setItem(draftKey(old.doc.employeeCode),JSON.stringify(old));
+    localStorage.removeItem('lpsf_pending_doc');
+  }catch(e){}
+}
+let finishedSyncing=false;
+async function trySyncFinishedDocs(){
+  if(finishedSyncing) return false;
+  finishedSyncing=true;
+  let allSynced=true;
+  try{
+    while(true){
+      const q=loadFinishedQueue();
+      if(!q.length) break;
+      const current=q[0];
+      setSyncBadge('syncing');
+      try{
+        try{
+          await window.fsCreate('documents',current.id,current.doc);
+        }catch(e){
+          // เอกสารนี้ถูกสร้างไปแล้วจากรอบ sync ก่อนหน้า (แค่ retry ซ้ำ ไม่ใช่ error จริง) — ถือว่าสำเร็จ
+          // ห้ามใช้ fsUpdate เขียนทับซ้ำ เพราะจะไปทับสถานะ/downloadCount ที่เดสก์ท็อปอาจแก้ไปแล้ว
+          if(!e.alreadyExists) throw e;
+        }
+        saveFinishedQueue(loadFinishedQueue().filter(x=>x.id!==current.id));
+        S.online=true; setSyncBadge('online');
+      }catch(e){
+        allSynced=false; S.online=false; setSyncBadge('offline'); break;
+      }
+    }
+  }finally{ finishedSyncing=false; }
+  return allSynced && loadFinishedQueue().length===0;
+}
+function queueProduct(bc,name,price,unit){
+  let q; try{ q=JSON.parse(localStorage.getItem('lpsf_pending_products')||'[]'); }catch(e){ q=[]; }
+  const entry={bc,name};
+  if(price) entry.price=price;
+  if(unit) entry.unit=unit;
+  q.push(entry); try{ localStorage.setItem('lpsf_pending_products', JSON.stringify(q)); }catch(e){}
+  tryFlushProducts();
+}
+async function tryFlushProducts(){
+  let q; try{ q=JSON.parse(localStorage.getItem('lpsf_pending_products')||'[]'); }catch(e){ q=[]; }
+  if(!q.length) return;
+  const rest=[];
+  for(const p of q){
+    const data={name:p.name, updatedAt:new Date()};
+    if(p.price) data.price=p.price;
+    if(p.unit) data.unit=p.unit;
+    try{ await window.fsUpsert('products',p.bc,data); }
+    catch(e){ rest.push(p); }
+  }
+  try{ localStorage.setItem('lpsf_pending_products', JSON.stringify(rest)); }catch(e){}
+}
+window.addEventListener('online', ()=>{ trySyncFinishedDocs(); tryFlushProducts(); });
+setInterval(()=>{ trySyncFinishedDocs(); tryFlushProducts(); }, 8000);
+
+/* ---------- เข้าสู่ระบบด้วยรหัสพนักงาน ---------- */
+window.checkEmployee = async function(){
+  const code=$('fEmpCode').value.trim();
+  if(!code){ $('loginMsg').textContent='กรุณากรอกรหัสพนักงาน'; return; }
+  $('loginMsg').textContent='กำลังตรวจสอบ…';
+  try{
+    const emp=await window.fsGet('employees', code);
+    if(!emp||emp.active===false){ $('loginMsg').textContent='ไม่พบรหัสพนักงานนี้ในระบบ — ติดต่อผู้ดูแลให้เพิ่มรายชื่อก่อน'; return; }
+    S.employee={code, name:emp.name||code};
+    try{
+      localStorage.setItem('lpsf_employee_code', code);
+      localStorage.setItem('lpsf_employee_name_'+code, S.employee.name);
+    }catch(e){}
+    $('loginMsg').textContent='';
+    await afterLogin();
+  }catch(e){
+    $('loginMsg').textContent='เชื่อมต่อไม่ได้ — ลองใหม่เมื่อมีอินเทอร์เน็ต (ต้อง login ผ่านอย่างน้อย 1 ครั้งก่อนใช้ออฟไลน์)';
+  }
+};
+window.logoutEmployee = function(){
+  S.employee=null; S.docId=null; S.locked=false;
+  try{ localStorage.removeItem('lpsf_employee_code'); }catch(e){}
+  $('vHome').style.display='none'; $('vLogin').style.display='block'; $('fEmpCode').value='';
+};
+async function afterLogin(){
+  $('empInfo').textContent='พนักงาน: '+S.employee.name+' ('+S.employee.code+')';
+  const draft=loadDraft(S.employee.code);
+  $('vLogin').style.display='none';
+  if(draft&&draft.id&&draft.doc){
+    const openDoc=draft.doc;
+    S.docId=draft.id; S.locked=false;
+    S.items[openDoc.mode]=openDoc.items||[];
+    $('fBranch').value=openDoc.branch||''; $('fDept').value=openDoc.dept||'';
+    $('fDate').value=openDoc.date||new Date().toISOString().slice(0,10);
+    applyModeUI(openDoc.mode);
+    toast('พบเอกสารค้างอยู่ '+S.docId+' — กลับมาทำต่อ');
+  }else{
+    $('vHome').style.display='block';
+  }
+}
+function docTimeStamp(){
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
+}
+
+async function initApp(){
+  try{ await window.fsAutoLogin(); S.online=true; setSyncBadge('online'); }
+  catch(e){ S.online=false; setSyncBadge('offline'); }
+  if(S.online){
+    try{ await loadProductsFromFirestore(); }
+    catch(e){ loadProductsFromCache(); }
+  }else{
+    loadProductsFromCache();
+  }
+  S.ready=true;
+  $('masterInfo').textContent=Object.keys(S.master).length.toLocaleString()+' รายการ'+
+    (S.online?' (ซิงก์ล่าสุดจากส่วนกลาง)':' (โหมดออฟไลน์ — ใช้ข้อมูลที่เคยซิงก์ไว้ในเครื่องนี้)');
+  $('fDate').value=new Date().toISOString().slice(0,10);
+  buildChips();
+  migrateLegacyPending();
+  trySyncFinishedDocs(); tryFlushProducts();
+  let savedCode; try{ savedCode=localStorage.getItem('lpsf_employee_code'); }catch(e){ savedCode=null; }
+  if(savedCode){
+    $('fEmpCode').value=savedCode;
+    let cachedName; try{ cachedName=localStorage.getItem('lpsf_employee_name_'+savedCode); }catch(e){ cachedName=null; }
+    if(!S.online && cachedName){
+      S.employee={code:savedCode, name:cachedName};
+      await afterLogin();
+    }else{
+      await window.checkEmployee();
+    }
+  }
+}
+window.addEventListener('load', initApp);
+
+function parseCSV(txt){
+  txt = txt.replace(/^\uFEFF/,'');
+  const sep = (txt.split('\n')[0].split('\t').length > txt.split('\n')[0].split(',').length) ? '\t' : ',';
+  const rows=[]; let row=[], cur='', q=false;
+  for(let i=0;i<txt.length;i++){
+    const c=txt[i];
+    if(q){ if(c==='"'){ if(txt[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===sep){ row.push(cur); cur=''; }
+    else if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+    else if(c!=='\r') cur+=c;
+  }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r=>r.some(x=>String(x).trim()!==''));
+}
+async function loadMaster(inp){
+  const f=inp.files[0]; if(!f) return;
+  toast('กำลังอ่านไฟล์…');
+  try{
+    const rows=parseCSV(await f.text());
+    const h=(rows[0]||[]).map(x=>String(x||'').trim().toUpperCase());
+    const find=ks=>h.findIndex(x=>ks.some(k=>x.indexOf(k)>=0));
+    const iB=find(['BARCODE','บาร์โค้ด']), iN=find(['NAME','ชื่อ','DESC']),
+          iP=find(['PRICE','ราคา']), iU=find(['UNIT','หน่วย']);
+    if(iB<0){ toast('ไม่พบคอลัมน์ BARCODE'); return; }
+    const ov={}; let n=0;
+    for(let i=1;i<rows.length;i++){
+      const bc=normBc(rows[i][iB]); if(!bc) continue;
+      const o=S.master[bc]||(S.master[bc]={});
+      if(iN>=0&&rows[i][iN]) o.name=String(rows[i][iN]).trim();
+      if(iP>=0&&rows[i][iP]) o.price=Number(String(rows[i][iP]).replace(/[^\d.-]/g,''));
+      if(iU>=0&&rows[i][iU]) o.unit=String(rows[i][iU]).trim();
+      ov[bc]=o; n++;
+    }
+    try{ localStorage.setItem('lpsf_products_cache', JSON.stringify(S.master)); }catch(e){}
+    $('masterInfo').textContent = Object.keys(S.master).length.toLocaleString()+
+      ' รายการ (อัปเดต '+n.toLocaleString()+(iP>=0?' · มีราคา':'')+')';
+    toast('อัปเดตรายการสินค้าในเครื่องแล้ว กำลังซิงก์ขึ้นฐานข้อมูลกลาง…');
+    let ok=0;
+    for(const bc in ov){
+      try{ await window.fsUpsert('products', bc, Object.assign({updatedAt:new Date()}, ov[bc])); ok++; }
+      catch(e){ /* เครือข่ายมีปัญหา — เหลือใน localStorage แล้ว ผู้ใช้อัปโหลดซ้ำได้ภายหลัง */ }
+    }
+    toast(ok===n ? 'ซิงก์ขึ้นฐานข้อมูลกลางครบ '+ok+' รายการ' : 'ซิงก์ได้ '+ok+'/'+n+' รายการ (ที่เหลือ ลองอัปโหลดใหม่เมื่อเน็ตพร้อม)');
+  }catch(e){ console.error(e); toast('อ่านไฟล์ไม่สำเร็จ'); }
+}
+
+/* ---------- navigation ---------- */
+function applyModeUI(m){
+  S.mode=m;
+  if(S.docId&&!S.locked) setSyncBadge('draft');
+  $('modeBadge').style.display='inline-block';
+  $('modeBadge').textContent=m;
+  $('modeBadge').className='badge'+(m==='RTC'?' rtc':'');
+  $('appTitle').textContent = m==='ADJ' ? 'ใบแก้ไขรายการ Adjust' : 'Markdown Price Form';
+  $('saveBtn').className='btn'+(m==='RTC'?' teal':'');
+  $('tabs').style.display='flex';
+  $('scanCount').textContent = S.items[m].length ? ('บันทึกแล้ว '+S.items[m].length+' รายการ') : 'ยังไม่มีรายการ';
+  go('scan');
+}
+function pickMode(m){
+  if(!S.employee){ toast('กรุณาเข้าสู่ระบบก่อน'); return; }
+  if(S.docId&&S.mode){
+    if(m!==S.mode) toast('มีเอกสาร '+S.mode+' ค้างอยู่ — กรุณาบันทึกและจบเอกสารก่อน');
+    applyModeUI(S.mode);
+    return;
+  }
+  S.docId='DOC-'+m+'-'+S.employee.code+'-'+docTimeStamp()+'-'+Math.random().toString(36).slice(2,5);
+  S.items[m]=[]; S.locked=false;
+  applyModeUI(m);
+  saveDraft();
+  toast('สร้างเอกสารใหม่: '+S.docId);
+}
+function go(v){
+  S.view=v;
+  $('vHome').style.display = v==='home'?'block':'none';
+  $('vScan').style.display = v==='scan'?'block':'none';
+  $('vList').style.display = v==='list'?'block':'none';
+  $('tabScan').classList.toggle('on', v==='scan');
+  $('tabList').classList.toggle('on', v==='list');
+  if(v==='home'){ stopCam(); $('tabs').style.display='none'; $('modeBadge').style.display='none';
+    $('appTitle').textContent='LP Scan Form'; return; }
+  if(v==='scan') startCam();
+  if(v==='list'){ stopCam(); renderList(); }
+  window.scrollTo(0,0);
+}
+
+/* ---------- camera ---------- */
+async function startCam(){
+  if(S.camOn) return;
+  try{
+    await need('qr');
+    if(!S.scanner) S.scanner = new Html5Qrcode('reader',{ formatsToSupport:[
+      Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A, Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.ITF], verbose:false });
+    await S.scanner.start({facingMode:'environment'},
+      {fps:12, qrbox:{width:260,height:150}, aspectRatio:1.4}, onScan, ()=>{});
+    S.camOn=true; $('camBtn').textContent='ปิดกล้อง';
+    $('scanHint').textContent='เล็งบาร์โค้ดให้อยู่ในกรอบ';
+  }catch(e){
+    console.error(e);
+    $('scanHint').textContent='เปิดกล้องไม่ได้ — ใช้ปุ่มพิมพ์บาร์โค้ดเองได้เลย';
+  }
+}
+async function stopCam(){ if(S.scanner&&S.camOn){ try{ await S.scanner.stop(); }catch(e){} }
+  S.camOn=false; if($('camBtn')) $('camBtn').textContent='เปิดกล้อง'; }
+function toggleCam(){ S.camOn?stopCam():startCam(); }
+function onScan(txt){
+  const now=Date.now();
+  if(txt===S.lastScan.code && now-S.lastScan.t<2000) return;
+  S.lastScan={code:txt,t:now};
+  if(navigator.vibrate) navigator.vibrate(45);
+  openSheet(normBc(txt));
+}
+function manualEntry(){ const v=prompt('พิมพ์บาร์โค้ด'); if(v) openSheet(normBc(v)); }
+
+/* ---------- item sheet ---------- */
+function chip(txt,on,fn,teal){ const b=document.createElement('div');
+  b.className='chip'+(on?' on':'')+(teal?' teal':''); b.textContent=txt; b.onclick=fn; return b; }
+function buildChips(){
+  const cc=$('codeChips'); cc.innerHTML='';
+  CODES.forEach(o=>cc.appendChild(chip(o.t, String($('fCode').value)===String(o.c), ()=>{
+    $('fCode').value=o.c;
+    if(!$('fReason').value){
+      const r = o.c===25?'หมดอายุ':o.c===21?'ชำรุด/เน่าเสีย':o.c===8?'ขายผิดบาร์โค้ด':
+                o.c===22?'ขาดส่งจาก DC':o.c===23?'ผลต่างตรวจนับ':'';
+      if(r) $('fReason').value=r;
+    }
+    if(!$('fQty').value && [13,21,22,23,25].indexOf(o.c)>=0) $('fQty').value='-1';
+    buildChips();
+  })));
+  const rc=$('reasonChips'); rc.innerHTML='';
+  REASONS.forEach(r=>rc.appendChild(chip(r, $('fReason').value===r, ()=>{ $('fReason').value=r; buildChips(); })));
+  const pc=$('pctChips'); pc.innerHTML='';
+  PCTS.forEach(p=>pc.appendChild(chip(p+'%', Number($('fPct').value)===p, ()=>{
+    $('fPct').value=p; buildChips(); calcPrice(); }, true)));
+}
+function calcPrice(){
+  const p=Number($('fPrice').value), pct=Number($('fPct').value);
+  $('shCalc').textContent = (p>0&&pct>0) ? roundUpPrice(p,pct/100).toLocaleString()+' ฿' : '—';
+}
+$('fPrice').addEventListener('input', calcPrice);
+$('fPct').addEventListener('input', ()=>{ buildChips(); calcPrice(); });
+$('fCode').addEventListener('input', buildChips);
+$('fReason').addEventListener('input', buildChips);
+
+function openSheet(bc, editIdx){
+  S.edit = (editIdx==null)?null:editIdx;
+  const isRTC = S.mode==='RTC';
+  const it = S.edit!=null ? S.items[S.mode][S.edit] : null;
+  const code = bc || (it&&it.bc) || '';
+  const m = S.master[code];
+  $('shTitle').textContent = S.edit!=null?'แก้ไขรายการ':'เพิ่มรายการ';
+  $('shBc').textContent = code;
+  $('shName').textContent = (it&&it.name)||(m&&m.name)||'ไม่พบในรายการสินค้า';
+  $('shProd').className = 'prodbox'+(((m&&m.name)||(it&&it.name))?'':' warn');
+  $('wrapManualName').style.display = (m&&m.name)?'none':'block';
+  $('fName').value = (it&&it.name)||'';
+  $('adjFields').style.display = isRTC?'none':'block';
+  $('rtcFields').style.display = isRTC?'block':'none';
+  if(isRTC){
+    $('fUnit').value=(it&&it.unit)||(m&&m.unit)||'ชิ้น';
+    $('fPrice').value=(it&&it.price)||(m&&m.price)||'';
+    $('fPct').value= it?Math.round(it.pct*100):'';
+    $('fRQty').value= it?it.qty:1;
+    $('fRExp').value=(it&&it.expIso)||'';
+  }else{
+    $('fCode').value= it?it.code:'';
+    $('fQty').value= it?it.qty:'';
+    $('fReason').value=(it&&it.reason)||'';
+    $('fExp').value=(it&&it.expIso)||'';
+  }
+  buildChips(); calcPrice();
+  S.pending=code;
+  $('sheet').classList.add('show');
+}
+function closeSheet(){ $('sheet').classList.remove('show'); S.pending=null; S.edit=null;
+  if(S.view==='scan'&&!S.camOn) startCam(); }
+function saveItem(){
+  if(S.locked){ toast('เอกสารนี้ถูกล็อกแล้ว แก้ไขไม่ได้'); closeSheet(); return; }
+  const bc=S.pending, m=S.master[bc];
+  const name=(m&&m.name)||$('fName').value.trim();
+  if(!name){ toast('กรุณาใส่ชื่อสินค้า'); return; }
+  let o;
+  if(S.mode==='RTC'){
+    const price=Number($('fPrice').value), pct=Number($('fPct').value)/100, qty=Number($('fRQty').value);
+    if(!price){ toast('กรุณาใส่ราคาขาย'); return; }
+    if(!pct){ toast('กรุณาเลือก % ลดราคา'); return; }
+    if(!qty){ toast('กรุณาใส่จำนวน'); return; }
+    o={bc,name,unit:$('fUnit').value.trim()||'ชิ้น',price,pct,qty,
+       newPrice:roundUpPrice(price,pct),expIso:$('fRExp').value};
+  }else{
+    const code=Number($('fCode').value), qty=Number($('fQty').value);
+    if(!code){ toast('กรุณาเลือก Adjust code'); return; }
+    if(!qty){ toast('กรุณาใส่จำนวนชิ้น'); return; }
+    o={bc,name,code,qty,reason:$('fReason').value.trim(),expIso:$('fExp').value};
+  }
+  if(S.edit!=null){
+    S.items[S.mode][S.edit]=o;
+  }else{
+    // สแกนบาร์โค้ดเดิมซ้ำในเอกสารเดียวกัน -> รวมจำนวนไว้ในรายการเดิม ไม่สร้างแถวใหม่
+    const dupIdx=S.items[S.mode].findIndex(x=>x.bc===bc);
+    if(dupIdx>=0){
+      S.items[S.mode][dupIdx].qty=Number(S.items[S.mode][dupIdx].qty)+Number(o.qty);
+      toast('บาร์โค้ดซ้ำ — รวมจำนวนกับรายการเดิมแล้ว (รวม '+S.items[S.mode][dupIdx].qty+')');
+    }else{
+      S.items[S.mode].push(o);
+    }
+  }
+  if(!m){ // ไม่พบบาร์โค้ดในฐานข้อมูล -> เพิ่มเข้าฐานข้อมูลสินค้ากลางทันที (พร้อมราคา/หน่วยถ้ามี เช่นจาก RTC)
+    const newPrice=S.mode==='RTC'?o.price:undefined, newUnit=S.mode==='RTC'?o.unit:undefined;
+    S.master[bc]=Object.assign({name}, newPrice?{price:newPrice}:{}, newUnit?{unit:newUnit}:{});
+    queueProduct(bc,name,newPrice,newUnit);
+  }
+  persist();
+  saveDraft();
+  closeSheet();
+  const n=S.items[S.mode].length;
+  $('scanCount').textContent='บันทึกแล้ว '+n+' รายการ';
+  toast('บันทึกแล้ว · รวม '+n+' รายการ');
+  if(S.view==='list') renderList();
+}
+
+/* ---------- list ---------- */
+function renderList(){
+  const arr=S.items[S.mode]||[], box=$('listBox');
+  if(!arr.length){
+    box.innerHTML='<div class="card"><div class="empty"><div class="e">☰</div>'+
+      '<h3>ยังไม่มีรายการ</h3><p style="font-size:14px;margin:0">กลับไปหน้าสแกนเพื่อเริ่มยิงบาร์โค้ด</p></div></div>';
+    $('expBox').style.display='none'; return;
+  }
+  $('expBox').style.display='block';
+  box.innerHTML=arr.map((it,i)=>{
+    const tags = S.mode==='RTC'
+      ? '<span class="tag t">'+Math.round(it.pct*100)+'%</span>'+
+        '<span class="tag">'+it.price+' → <b>'+it.newPrice+'</b> ฿</span>'+
+        '<span class="tag">'+it.qty+' '+esc(it.unit)+'</span>'+
+        (it.expIso?'<span class="tag">EXP '+thDate(it.expIso)+'</span>':'')
+      : '<span class="tag k">Code '+it.code+'</span><span class="tag">'+it.qty+' ชิ้น</span>'+
+        (it.reason?'<span class="tag">'+esc(it.reason)+'</span>':'')+
+        (it.expIso?'<span class="tag">EXP '+thDate(it.expIso)+'</span>':'');
+    const acts = S.locked ? '' :
+      '<div class="acts"><button onclick="openSheet(\''+it.bc+'\','+i+')">แก้ไข</button>'+
+      '<button class="del" onclick="delItem('+i+')">ลบ</button></div>';
+    return '<div class="item"><div class="top"><div class="no">'+(i+1)+'</div>'+
+      '<div style="flex:1;min-width:0"><div class="nm">'+esc(it.name)+'</div>'+
+      '<div class="bc">'+it.bc+'</div></div></div><div class="meta">'+tags+'</div>'+acts+'</div>';
+  }).join('');
+  renderExport();
+}
+function delItem(i){ if(S.locked){ toast('เอกสารถูกล็อกแล้ว'); return; }
+  if(!confirm('ลบรายการนี้?')) return; S.items[S.mode].splice(i,1); persist(); saveDraft(); renderList(); }
+function clearAll(){ if(S.locked){ toast('เอกสารถูกล็อกแล้ว'); return; }
+  if(!confirm('ล้างรายการทั้งหมดในโหมดนี้?')) return; S.items[S.mode]=[]; persist(); saveDraft(); renderList(); }
+function renderExport(){
+  const n=S.items[S.mode].length;
+  if(S.locked){
+    $('finishTitle').textContent='เอกสารถูกล็อกแล้ว';
+    $('expInfo').textContent=n+' รายการ · ส่งให้เดสก์ท็อปพิมพ์ Excel ต่อได้เลย (เลขที่เอกสาร '+S.docId+')';
+    $('finishBtn').style.display='none';
+  }else{
+    $('finishTitle').textContent='จบเอกสาร';
+    $('expInfo').textContent=n+' รายการ · เก็บอยู่ในมือถือเท่านั้น — กด "บันทึกและจบเอกสาร" เมื่อสแกนครบแล้ว';
+    $('finishBtn').style.display='block';
+  }
+}
+
+/* ---------- จบเอกสาร ---------- */
+window.finishDocument = async function(){
+  if(S.locked) return;
+  if(!S.items[S.mode].length){ toast('ยังไม่มีรายการให้จบเอกสาร'); return; }
+  if(!confirm('ยืนยันบันทึกและจบเอกสาร? ระบบจะส่งข้อมูลขึ้นเดสก์ท็อป และหลังจากนี้จะแก้ไขจากมือถือไม่ได้')) return;
+  S.locked=true;
+  const finishedId=S.docId;
+  enqueueFinished({id:finishedId,doc:docSnapshot('ready')});
+  clearDraft(S.employee.code);
+  const synced=await trySyncFinishedDocs();
+  toast(synced
+    ? 'บันทึกเอกสาร '+finishedId+' แล้ว — เปิดจากเดสก์ท็อปได้'
+    : 'บันทึกไว้ในมือถือแล้ว — จะส่งขึ้นเดสก์ท็อปอัตโนมัติเมื่อออนไลน์');
+  renderList();
+  setTimeout(()=>{ S.docId=null; S.locked=false; S.items[S.mode]=[]; go('home'); }, 1500);
+};
+
+/* ---------- persistence (สำรองข้อมูลรายการปัจจุบันไว้ในเครื่อง กันแอปถูกปิดกลางคัน) ---------- */
+function persist(){
+  try{
+    localStorage.setItem('lpsf_data', JSON.stringify({
+      items:S.items, branch:$('fBranch').value, dept:$('fDept').value, date:$('fDate').value
+    }));
+  }catch(e){}
+}
+['fBranch','fDept','fDate'].forEach(id=>$(id).addEventListener('change', ()=>{ persist(); saveDraft(); }));
+</script>
+</body>
+</html>
