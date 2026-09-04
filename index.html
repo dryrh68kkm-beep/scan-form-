@@ -38,7 +38,7 @@ header.app h1{font-size:21px; font-weight:800; letter-spacing:-.02em; margin:0}
 .card h2{font-size:17px; margin:0 0 6px; font-weight:700}
 .card p.help{margin:0; color:var(--sec); font-size:14px}
 .mode-card{display:flex; align-items:center; gap:16px; cursor:pointer; transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
-.mode-card:active{transform:scale(.97); transition:transform .08s cubic-bezier(.4,0,.2,1)}
+.mode-card:active{transform:scale(.97); transition:transform 0s}
 .icon{width:56px; height:56px; border-radius:18px; display:flex; align-items:center;
   justify-content:center; font-size:20px; font-weight:800; flex:0 0 auto}
 .icon.blue{background:var(--blueSoft); color:var(--blueStrong)}
@@ -54,7 +54,7 @@ input:focus,select:focus{border-color:var(--blue)}
 .btn{display:block; width:100%; height:52px; border:none; border-radius:15px; background:var(--blue);
   color:#fff; font-size:16px; font-weight:700; font-family:inherit; cursor:pointer;
   transition:transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s}
-.btn:active{transform:scale(.96); transition:transform .08s cubic-bezier(.4,0,.2,1)}
+.btn:active{transform:scale(.96); transition:transform 0s}
 .btn.teal{background:var(--teal)}
 .btn.sec{background:var(--blueSoft); color:var(--blueStrong)}
 .btn.ghost{background:#fff; color:var(--navy); border:1px solid var(--border)}
@@ -64,7 +64,7 @@ input:focus,select:focus{border-color:var(--blue)}
 .chip{padding:9px 14px; border-radius:12px; background:var(--input); border:1px solid var(--border);
   font-size:14px; font-weight:600; color:var(--navy); cursor:pointer; min-height:44px; display:flex; align-items:center;
   transition:transform .2s cubic-bezier(.34,1.56,.64,1), background .15s, border-color .15s, color .15s}
-.chip:active{transform:scale(.94); transition:transform .08s cubic-bezier(.4,0,.2,1)}
+.chip:active{transform:scale(.94); transition:transform 0s}
 .chip.on{background:var(--blue); border-color:var(--blue); color:#fff}
 .chip.on.teal{background:var(--teal); border-color:var(--teal)}
 .filebtn{position:relative; overflow:hidden; display:block}
@@ -77,7 +77,7 @@ nav.tabs{position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:
 nav.tabs button{flex:1; background:none; border:none; font-family:inherit; font-size:12px;
   font-weight:600; color:var(--muted); padding:8px 4px; border-radius:14px; cursor:pointer;
   transition:transform .2s cubic-bezier(.34,1.56,.64,1), background .15s, color .15s}
-nav.tabs button:active{transform:scale(.93); transition:transform .08s cubic-bezier(.4,0,.2,1)}
+nav.tabs button:active{transform:scale(.93); transition:transform 0s}
 nav.tabs button.on{background:var(--blueSoft); color:var(--blueStrong)}
 nav.tabs .tl{display:block; font-size:18px; margin-bottom:2px}
 .item{background:#fff; border:1px solid var(--border); border-radius:18px; padding:14px 16px; margin-bottom:10px}
@@ -93,7 +93,7 @@ nav.tabs .tl{display:block; font-size:18px; margin-bottom:2px}
 .item .acts button{flex:1; height:40px; border-radius:11px; border:1px solid var(--border);
   background:#fff; font-family:inherit; font-size:13.5px; font-weight:600; color:var(--navy);
   transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
-.item .acts button:active{transform:scale(.94); transition:transform .08s cubic-bezier(.4,0,.2,1)}
+.item .acts button:active{transform:scale(.94); transition:transform 0s}
 .item .acts button.del{color:var(--danger); border-color:#F0CFCD}
 .empty{text-align:center; padding:44px 20px; color:var(--muted)}
 .empty .e{font-size:38px; opacity:.35}
@@ -129,7 +129,7 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:18px 0}
 .home-heading{font-size:15px;line-height:1.5;margin:10px 0 18px;font-weight:600;color:var(--sec);letter-spacing:0}
 .mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}
 button.mode-tile{appearance:none;-webkit-appearance:none;width:100%;min-width:0;padding:0 0 18px;background:#fff;border:1px solid rgba(194,220,226,.9);border-radius:26px;overflow:hidden;color:var(--navy);font:inherit;text-align:center;cursor:pointer;box-shadow:0 12px 26px rgba(20,40,58,.07);transition:transform .22s cubic-bezier(.34,1.56,.64,1),border-color .15s,box-shadow .15s}
-button.mode-tile:active{transform:scale(.96);transition:transform .08s cubic-bezier(.4,0,.2,1)}
+button.mode-tile:active{transform:scale(.96);transition:transform 0s}
 button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-offset:3px}
 .mode-art{width:100%;aspect-ratio:1/1;overflow:hidden;background:var(--soft)}
 .mode-art img{display:block;width:100%;height:100%;object-fit:cover}
@@ -369,6 +369,10 @@ const PCTS = [20,25,30,50,75];
 const S = { mode:null, view:'home', master:{}, items:{ADJ:[], RTC:[]},
   edit:null, pending:null, scanner:null, camOn:false, lastScan:{code:'',t:0}, ready:false,
   employee:null, docId:null, locked:false, online:false };
+
+// iOS Safari ไม่ apply :active pseudo-class ตอนแตะ (tap) ถ้าไม่มี touch listener ผูกไว้ในหน้า —
+// listener เปล่านี้ทำให้ animation กดปุ่ม (:active) ที่ตั้งไว้ใน CSS ทำงานจริงบนมือถือ iPhone
+document.addEventListener('touchstart', function(){}, {passive:true});
 
 const $ = id => document.getElementById(id);
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show');
