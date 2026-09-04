@@ -1,0 +1,26 @@
+{
+  "id": "./desktop.html",
+  "name": "LP Scan Form Desktop",
+  "short_name": "LP Scan Desktop",
+  "description": "จัดการ ตรวจสอบ ดาวน์โหลด และพิมพ์เอกสาร ADJ / RTC",
+  "lang": "th",
+  "start_url": "./desktop.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F3FAFC",
+  "theme_color": "#08743F",
+  "icons": [
+    {
+      "src": "assets/desktop-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/desktop-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
