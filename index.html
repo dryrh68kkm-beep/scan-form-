@@ -223,7 +223,7 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
   <div class="card" id="expBox">
     <h2 id="finishTitle">จบเอกสาร</h2>
     <p class="help" id="expInfo" style="margin-bottom:14px"></p>
-    <button class="btn" id="finishBtn" style="margin-bottom:10px" onclick="finishDocument()">จบเอกสาร (ล็อกรายการ)</button>
+    <button class="btn" id="finishBtn" style="margin-bottom:10px" onclick="finishDocument()">บันทึกและจบเอกสาร</button>
     <button class="btn danger" onclick="clearAll()">ล้างรายการทั้งหมด</button>
   </div>
 </section>
@@ -334,6 +334,10 @@ function setSyncBadge(state){
   const b=$('syncBadge'); b.style.display='inline-block';
   if(state==='online'){ b.textContent='ออนไลน์'; b.style.background='var(--tealSoft)'; b.style.color='var(--tealStrong)'; }
   else if(state==='syncing'){ b.textContent='กำลังซิงก์…'; b.style.background='var(--blueSoft)'; b.style.color='var(--blueStrong)'; }
+  else if(state==='draft'){
+    b.textContent=S.online?'ร่างในมือถือ':'ร่างออฟไลน์';
+    b.style.background='#FDF4E5'; b.style.color='var(--warn)';
+  }
   else { b.textContent='ออฟไลน์'; b.style.background='#FDF4E5'; b.style.color='var(--warn)'; }
 }
 function loadProductsFromCache(){
@@ -347,32 +351,71 @@ async function loadProductsFromFirestore(){
   try{ localStorage.setItem('lpsf_products_cache', JSON.stringify(map)); }catch(e){}
 }
 
-/* ---------- offline queue: เอกสารปัจจุบัน (single writer ต่อเครื่อง จึงไม่มี conflict ข้ามอุปกรณ์) ---------- */
-let syncTimer=null;
-function docSnapshot(){
+/* ---------- local draft + finished queue ---------- */
+function docSnapshot(status){
   return {
     mode:S.mode, employeeCode:S.employee.code, employeeName:S.employee.name,
     branch:$('fBranch').value.trim(), dept:$('fDept').value.trim(), date:$('fDate').value,
-    status: S.locked?'ready':'scanning',
+    status:status || 'scanning',
     itemCount:S.items[S.mode].length, items:S.items[S.mode],
-    downloadCount:0, updatedAt:new Date()
+    updatedAt:new Date().toISOString()
   };
 }
-function scheduleSync(){
+function draftKey(code){ return 'lpsf_draft_doc_'+code; }
+function saveDraft(){
   if(!S.docId||!S.employee) return;
-  try{ localStorage.setItem('lpsf_pending_doc', JSON.stringify({id:S.docId, doc:docSnapshot()})); }catch(e){}
-  clearTimeout(syncTimer);
-  syncTimer=setTimeout(trySyncDoc, 600);
+  try{ localStorage.setItem(draftKey(S.employee.code), JSON.stringify({id:S.docId, doc:docSnapshot('scanning')})); }catch(e){}
+  setSyncBadge('draft');
 }
-async function trySyncDoc(){
-  let pend; try{ pend=JSON.parse(localStorage.getItem('lpsf_pending_doc')||'null'); }catch(e){ pend=null; }
-  if(!pend) return;
-  setSyncBadge('syncing');
+function loadDraft(code){
+  try{ return JSON.parse(localStorage.getItem(draftKey(code))||'null'); }catch(e){ return null; }
+}
+function clearDraft(code){
+  try{ localStorage.removeItem(draftKey(code)); }catch(e){}
+}
+function loadFinishedQueue(){
+  try{ const q=JSON.parse(localStorage.getItem('lpsf_finished_queue')||'[]'); return Array.isArray(q)?q:[]; }
+  catch(e){ return []; }
+}
+function saveFinishedQueue(q){
+  try{ localStorage.setItem('lpsf_finished_queue',JSON.stringify(q)); }catch(e){}
+}
+function enqueueFinished(entry){
+  const q=loadFinishedQueue(), i=q.findIndex(x=>x.id===entry.id);
+  if(i>=0) q[i]=entry; else q.push(entry);
+  saveFinishedQueue(q);
+}
+function migrateLegacyPending(){
+  let old; try{ old=JSON.parse(localStorage.getItem('lpsf_pending_doc')||'null'); }catch(e){ old=null; }
+  if(!old||!old.id||!old.doc) return;
   try{
-    await window.fsUpsert('documents', pend.id, pend.doc);
+    if(old.doc.status==='ready') enqueueFinished(old);
+    else if(old.doc.employeeCode && !loadDraft(old.doc.employeeCode))
+      localStorage.setItem(draftKey(old.doc.employeeCode),JSON.stringify(old));
     localStorage.removeItem('lpsf_pending_doc');
-    S.online=true; setSyncBadge('online');
-  }catch(e){ S.online=false; setSyncBadge('offline'); }
+  }catch(e){}
+}
+let finishedSyncing=false;
+async function trySyncFinishedDocs(){
+  if(finishedSyncing) return false;
+  finishedSyncing=true;
+  let allSynced=true;
+  try{
+    while(true){
+      const q=loadFinishedQueue();
+      if(!q.length) break;
+      const current=q[0];
+      setSyncBadge('syncing');
+      try{
+        await window.fsUpsert('documents',current.id,current.doc);
+        saveFinishedQueue(loadFinishedQueue().filter(x=>x.id!==current.id));
+        S.online=true; setSyncBadge('online');
+      }catch(e){
+        allSynced=false; S.online=false; setSyncBadge('offline'); break;
+      }
+    }
+  }finally{ finishedSyncing=false; }
+  return allSynced && loadFinishedQueue().length===0;
 }
 function queueProduct(bc,name){
   let q; try{ q=JSON.parse(localStorage.getItem('lpsf_pending_products')||'[]'); }catch(e){ q=[]; }
@@ -389,8 +432,8 @@ async function tryFlushProducts(){
   }
   try{ localStorage.setItem('lpsf_pending_products', JSON.stringify(rest)); }catch(e){}
 }
-window.addEventListener('online', ()=>{ trySyncDoc(); tryFlushProducts(); });
-setInterval(()=>{ trySyncDoc(); tryFlushProducts(); }, 8000);
+window.addEventListener('online', ()=>{ trySyncFinishedDocs(); tryFlushProducts(); });
+setInterval(()=>{ trySyncFinishedDocs(); tryFlushProducts(); }, 8000);
 
 /* ---------- เข้าสู่ระบบด้วยรหัสพนักงาน ---------- */
 window.checkEmployee = async function(){
@@ -418,22 +461,11 @@ window.logoutEmployee = function(){
 };
 async function afterLogin(){
   $('empInfo').textContent='พนักงาน: '+S.employee.name+' ('+S.employee.code+')';
-  let openDoc=null;
-  if(S.online){
-    try{
-      const rows=await window.fsQuery('documents','employeeCode','EQUAL',S.employee.code);
-      openDoc=rows.find(d=>d.status==='scanning')||null;
-    }catch(e){}
-  }
-  if(!openDoc){
-    let pend; try{ pend=JSON.parse(localStorage.getItem('lpsf_pending_doc')||'null'); }catch(e){ pend=null; }
-    if(pend && pend.doc.employeeCode===S.employee.code && pend.doc.status==='scanning'){
-      openDoc=Object.assign({_id:pend.id}, pend.doc);
-    }
-  }
+  const draft=loadDraft(S.employee.code);
   $('vLogin').style.display='none';
-  if(openDoc){
-    S.docId=openDoc._id; S.locked=false;
+  if(draft&&draft.id&&draft.doc){
+    const openDoc=draft.doc;
+    S.docId=draft.id; S.locked=false;
     S.items[openDoc.mode]=openDoc.items||[];
     $('fBranch').value=openDoc.branch||''; $('fDept').value=openDoc.dept||'';
     $('fDate').value=openDoc.date||new Date().toISOString().slice(0,10);
@@ -462,7 +494,8 @@ async function initApp(){
     (S.online?' (ซิงก์ล่าสุดจากส่วนกลาง)':' (โหมดออฟไลน์ — ใช้ข้อมูลที่เคยซิงก์ไว้ในเครื่องนี้)');
   $('fDate').value=new Date().toISOString().slice(0,10);
   buildChips();
-  trySyncDoc(); tryFlushProducts();
+  migrateLegacyPending();
+  trySyncFinishedDocs(); tryFlushProducts();
   let savedCode; try{ savedCode=localStorage.getItem('lpsf_employee_code'); }catch(e){ savedCode=null; }
   if(savedCode){
     $('fEmpCode').value=savedCode;
@@ -527,6 +560,7 @@ async function loadMaster(inp){
 /* ---------- navigation ---------- */
 function applyModeUI(m){
   S.mode=m;
+  if(S.docId&&!S.locked) setSyncBadge('draft');
   $('modeBadge').style.display='inline-block';
   $('modeBadge').textContent=m;
   $('modeBadge').className='badge'+(m==='RTC'?' rtc':'');
@@ -538,10 +572,15 @@ function applyModeUI(m){
 }
 function pickMode(m){
   if(!S.employee){ toast('กรุณาเข้าสู่ระบบก่อน'); return; }
+  if(S.docId&&S.mode){
+    if(m!==S.mode) toast('มีเอกสาร '+S.mode+' ค้างอยู่ — กรุณาบันทึกและจบเอกสารก่อน');
+    applyModeUI(S.mode);
+    return;
+  }
   S.docId='DOC-'+m+'-'+S.employee.code+'-'+docTimeStamp()+'-'+Math.random().toString(36).slice(2,5);
   S.items[m]=[]; S.locked=false;
   applyModeUI(m);
-  scheduleSync();
+  saveDraft();
   toast('สร้างเอกสารใหม่: '+S.docId);
 }
 function go(v){
@@ -552,7 +591,7 @@ function go(v){
   $('tabScan').classList.toggle('on', v==='scan');
   $('tabList').classList.toggle('on', v==='list');
   if(v==='home'){ stopCam(); $('tabs').style.display='none'; $('modeBadge').style.display='none';
-    $('appTitle').textContent='LP Scan Form'; S.mode=null; return; }
+    $('appTitle').textContent='LP Scan Form'; return; }
   if(v==='scan') startCam();
   if(v==='list'){ stopCam(); renderList(); }
   window.scrollTo(0,0);
@@ -687,7 +726,7 @@ function saveItem(){
     queueProduct(bc,name);
   }
   persist();
-  scheduleSync();
+  saveDraft();
   closeSheet();
   const n=S.items[S.mode].length;
   $('scanCount').textContent='บันทึกแล้ว '+n+' รายการ';
@@ -723,9 +762,9 @@ function renderList(){
   renderExport();
 }
 function delItem(i){ if(S.locked){ toast('เอกสารถูกล็อกแล้ว'); return; }
-  if(!confirm('ลบรายการนี้?')) return; S.items[S.mode].splice(i,1); persist(); scheduleSync(); renderList(); }
+  if(!confirm('ลบรายการนี้?')) return; S.items[S.mode].splice(i,1); persist(); saveDraft(); renderList(); }
 function clearAll(){ if(S.locked){ toast('เอกสารถูกล็อกแล้ว'); return; }
-  if(!confirm('ล้างรายการทั้งหมดในโหมดนี้?')) return; S.items[S.mode]=[]; persist(); scheduleSync(); renderList(); }
+  if(!confirm('ล้างรายการทั้งหมดในโหมดนี้?')) return; S.items[S.mode]=[]; persist(); saveDraft(); renderList(); }
 function renderExport(){
   const n=S.items[S.mode].length;
   if(S.locked){
@@ -734,7 +773,7 @@ function renderExport(){
     $('finishBtn').style.display='none';
   }else{
     $('finishTitle').textContent='จบเอกสาร';
-    $('expInfo').textContent=n+' รายการ · เอกสาร '+(S.docId||'')+' — กด "จบเอกสาร" เมื่อสแกนครบแล้ว';
+    $('expInfo').textContent=n+' รายการ · เก็บอยู่ในมือถือเท่านั้น — กด "บันทึกและจบเอกสาร" เมื่อสแกนครบแล้ว';
     $('finishBtn').style.display='block';
   }
 }
@@ -743,11 +782,15 @@ function renderExport(){
 window.finishDocument = async function(){
   if(S.locked) return;
   if(!S.items[S.mode].length){ toast('ยังไม่มีรายการให้จบเอกสาร'); return; }
-  if(!confirm('ยืนยันจบเอกสาร? หลังจากนี้จะแก้ไขจากมือถือไม่ได้ (แก้ต่อได้จากเดสก์ท็อป)')) return;
+  if(!confirm('ยืนยันบันทึกและจบเอกสาร? ระบบจะส่งข้อมูลขึ้นเดสก์ท็อป และหลังจากนี้จะแก้ไขจากมือถือไม่ได้')) return;
   S.locked=true;
-  scheduleSync();
-  await trySyncDoc();
-  toast('จบเอกสาร '+S.docId+' แล้ว — ล็อกเรียบร้อย รอเดสก์ท็อปพิมพ์');
+  const finishedId=S.docId;
+  enqueueFinished({id:finishedId,doc:docSnapshot('ready')});
+  clearDraft(S.employee.code);
+  const synced=await trySyncFinishedDocs();
+  toast(synced
+    ? 'บันทึกเอกสาร '+finishedId+' แล้ว — เปิดจากเดสก์ท็อปได้'
+    : 'บันทึกไว้ในมือถือแล้ว — จะส่งขึ้นเดสก์ท็อปอัตโนมัติเมื่อออนไลน์');
   renderList();
   setTimeout(()=>{ S.docId=null; S.locked=false; S.items[S.mode]=[]; go('home'); }, 1500);
 };
@@ -760,7 +803,7 @@ function persist(){
     }));
   }catch(e){}
 }
-['fBranch','fDept','fDate'].forEach(id=>$(id).addEventListener('change', ()=>{ persist(); scheduleSync(); }));
+['fBranch','fDept','fDate'].forEach(id=>$(id).addEventListener('change', ()=>{ persist(); saveDraft(); }));
 </script>
 </body>
 </html>
