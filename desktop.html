@@ -61,6 +61,8 @@ input,select{width:100%; padding:10px 12px; border:1px solid var(--border); bord
 .toast.show{opacity:.95}
 .filebtn{position:relative; overflow:hidden; display:inline-block}
 .filebtn input[type=file]{position:absolute; inset:0; opacity:0; width:100%; height:100%}
+.cellIn{width:100%; padding:6px 8px; font-size:13px; min-width:60px}
+td.bcCell{color:var(--muted); font-variant-numeric:tabular-nums}
 hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
 </style>
 </head>
@@ -195,30 +197,72 @@ function renderDocs(){
   ).join('');
 }
 
-/* ---------- เปิดดู/แก้ไขเอกสาร ---------- */
+/* ---------- เปิดดู/แก้ไขเอกสาร (แก้ไขรายการสินค้าในเอกสารได้ด้วย ไม่ใช่แค่สาขา/แผนก) ---------- */
 function openDoc(id){
   const d = D.docs.find(x=>x._id===id); if(!d) return;
   D.modalDoc = JSON.parse(JSON.stringify(d));
+  D.modalDoc.items = D.modalDoc.items || [];
   $('modalTitle').textContent = id+' — '+STATUS_LABEL[d.status];
   $('mBranch').value = d.branch||''; $('mDept').value = d.dept||'';
-  const isRTC = d.mode==='RTC';
+  const isRTC = D.modalDoc.mode==='RTC';
   $('modalHead').innerHTML = isRTC
-    ? '<tr><th>บาร์โค้ด</th><th>สินค้า</th><th>หน่วย</th><th>ราคา</th><th>%</th><th>จำนวน</th><th>ราคาใหม่</th></tr>'
-    : '<tr><th>บาร์โค้ด</th><th>สินค้า</th><th>Code</th><th>จำนวน</th><th>เหตุผล</th></tr>';
-  $('modalBody').innerHTML = (d.items||[]).map((it,i)=> isRTC
-    ? '<tr><td>'+esc(it.bc)+'</td><td>'+esc(it.name)+'</td><td>'+esc(it.unit)+'</td><td>'+it.price+'</td>'+
-      '<td>'+Math.round(it.pct*100)+'%</td><td>'+it.qty+'</td><td>'+it.newPrice+'</td></tr>'
-    : '<tr><td>'+esc(it.bc)+'</td><td>'+esc(it.name)+'</td><td>'+it.code+'</td><td>'+it.qty+'</td><td>'+esc(it.reason||'')+'</td></tr>'
-  ).join('');
+    ? '<tr><th>บาร์โค้ด</th><th>สินค้า</th><th>หน่วย</th><th>ราคา</th><th>%</th><th>จำนวน</th><th>ราคาใหม่</th><th></th></tr>'
+    : '<tr><th>บาร์โค้ด</th><th>สินค้า</th><th>Code</th><th>จำนวน</th><th>เหตุผล</th><th></th></tr>';
+  renderModalItems();
   $('downloadInfo').textContent = 'ดาวน์โหลดแล้ว '+(d.downloadCount||0)+' ครั้ง';
   renderDownloadBtns(d);
   $('docModal').classList.add('show');
 }
+// ราคาใหม่ (RTC) คำนวณตามสูตรเดียวกับที่เทมเพลต Excel ใช้ (ROUNDUP(ราคา-ราคา*%,0)) — ใช้แค่แสดงผล
+// ในตารางนี้ ไม่ได้เขียนทับสูตรจริงในไฟล์ Excel (export.js ไม่แตะคอลัมน์นี้อยู่แล้ว)
+function calcNewPrice(price, pct){
+  price = Number(price); pct = Number(pct);
+  if(!price || !pct) return '';
+  return Math.ceil(price - price*pct);
+}
+function renderModalItems(){
+  const items = D.modalDoc.items||[];
+  const isRTC = D.modalDoc.mode==='RTC';
+  $('modalBody').innerHTML = items.map((it,i)=> isRTC
+    ? '<tr><td class="bcCell">'+esc(it.bc)+'</td>'+
+      '<td><input class="cellIn" value="'+esc(it.name)+'" onchange="editModalItem('+i+',\'name\',this.value)"></td>'+
+      '<td><input class="cellIn" value="'+esc(it.unit||'')+'" onchange="editModalItem('+i+',\'unit\',this.value)"></td>'+
+      '<td><input class="cellIn" type="number" step="any" value="'+(it.price!=null?it.price:'')+'" onchange="editModalItem('+i+',\'price\',this.value)"></td>'+
+      '<td><input class="cellIn" type="number" step="any" value="'+(it.pct!=null?Math.round(it.pct*1000)/10:'')+'" onchange="editModalItem('+i+',\'pctPercent\',this.value)"> %</td>'+
+      '<td><input class="cellIn" type="number" step="1" min="0" value="'+(it.qty!=null?it.qty:'')+'" onchange="editModalItem('+i+',\'qty\',this.value)"></td>'+
+      '<td>'+calcNewPrice(it.price, it.pct)+'</td>'+
+      '<td><button class="btn danger" onclick="delModalItem('+i+')">ลบ</button></td></tr>'
+    : '<tr><td class="bcCell">'+esc(it.bc)+'</td>'+
+      '<td><input class="cellIn" value="'+esc(it.name)+'" onchange="editModalItem('+i+',\'name\',this.value)"></td>'+
+      '<td><input class="cellIn" value="'+esc(it.code||'')+'" onchange="editModalItem('+i+',\'code\',this.value)"></td>'+
+      '<td><input class="cellIn" type="number" step="1" min="0" value="'+(it.qty!=null?it.qty:'')+'" onchange="editModalItem('+i+',\'qty\',this.value)"></td>'+
+      '<td><input class="cellIn" value="'+esc(it.reason||'')+'" onchange="editModalItem('+i+',\'reason\',this.value)"></td>'+
+      '<td><button class="btn danger" onclick="delModalItem('+i+')">ลบ</button></td></tr>'
+  ).join('');
+}
+window.editModalItem = function(i, field, value){
+  if(!D.modalDoc||!D.modalDoc.items[i]) return;
+  const it = D.modalDoc.items[i];
+  if(field==='qty'){ it.qty = Math.max(0, parseInt(value,10)||0); }
+  else if(field==='price'){ it.price = Number(value)||0; renderModalItems(); return; }
+  else if(field==='pctPercent'){ it.pct = (Number(value)||0)/100; renderModalItems(); return; }
+  else { it[field] = value; }
+};
+window.delModalItem = function(i){
+  if(!D.modalDoc||!D.modalDoc.items[i]) return;
+  if(!confirm('ลบรายการนี้ออกจากเอกสาร?')) return;
+  D.modalDoc.items.splice(i,1);
+  renderModalItems();
+};
 function closeModal(){ $('docModal').classList.remove('show'); D.modalDoc=null; }
 async function saveModalMeta(){
   if(!D.modalDoc) return;
   try{
-    await window.fsUpdate('documents', D.modalDoc._id, {branch:$('mBranch').value.trim(), dept:$('mDept').value.trim()});
+    const items = D.modalDoc.items||[];
+    await window.fsUpdate('documents', D.modalDoc._id, {
+      branch:$('mBranch').value.trim(), dept:$('mDept').value.trim(),
+      items:items, itemCount:items.length
+    });
     toast('บันทึกการแก้ไขแล้ว');
     loadDocs();
   }catch(e){ toast('บันทึกไม่สำเร็จ — ตรวจการเชื่อมต่อ'); }
