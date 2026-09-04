@@ -1,19 +1,33 @@
 # scan-form-
 
-ฟอร์มสแกนสต๊อก/ตรวจนับ LP — Big C Hyper ไทรน้อย (Store 11252)
+**LP Scan Form (ADJ / RTC)** — Big C Hyper ไทรน้อย (Store 11252)
 
-เว็บแอปไฟล์เดียว (`index.html`) ใช้งานบนมือถือหน้างานได้ทันทีโดยไม่ต้องมีเซิร์ฟเวอร์ — เปิดไฟล์ในเบราว์เซอร์
-(หรือ deploy ผ่าน GitHub Pages) ข้อมูลถูกเก็บไว้ในเครื่อง (localStorage) และ export เป็น CSV ได้
+สแกนบาร์โค้ดด้วยกล้องมือถือ แล้ว Export เป็นไฟล์ Excel ตามฟอร์มจริงของ Big C
 
-## ฟีเจอร์
+- **ADJ** — แบบฟอร์มใบแก้ไขรายการ Adjust code (หน้าละ 43 บรรทัด)
+- **RTC** — เอกสารขออนุมัติปรับลดราคาสินค้าใกล้หมดอายุ / Markdown Price Form (หน้าละ 20 บรรทัด)
 
-- **สแกนนับ** — บันทึกรายการนับสต็อกตาม Fixture No. / บาร์โค้ด (สแกนกล้องผ่าน BarcodeDetector API หรือพิมพ์เอง),
-  รองรับวิธี by Count และ Default by One, สถานะ Not Count / Not Found / สินค้าพลัดหลง
-- **LP Focus Check** — บันทึกผลตรวจ Focus เทียบ Stock Take Editing Report พร้อมลงชื่อ "LP" ต่อท้ายอัตโนมัติ
-- **Negative Stock** — บันทึกพร้อมสาเหตุอ้างอิง Adjust Code (8/9/10/11/12) และเหตุผล Reconcile (A/B/C)
-- **Diff / Export** — ตรวจสอบมูลค่าผลต่างเทียบเกณฑ์ Reconcile Before Close/Apply (Hyper vs Market/Food Place)
-  และ export ข้อมูลทั้งหมดเป็นไฟล์ CSV
-- **Adjust Code Reference** — ตารางค้นหา Adjust Code ฉบับย่อ พร้อมหมวด Damage/Shrinkage
+## โครงไฟล์
 
-ข้อมูลอ้างอิงอิงตาม SOP-OPT-LP-001, เอกสาร Stock Count Process 2026, Reconcile Before Close/Apply Stock Take
-และเอกสารที่เกี่ยวข้องของฝ่าย Loss Prevention
+```
+index.html                  แอปทั้งหมด (ฟอร์มต้นแบบ + รายชื่อสินค้า 16,459 รายการ ฝังอยู่ข้างใน)
+vendor/html5-qrcode.min.js  ตัวอ่านบาร์โค้ดจากกล้อง
+vendor/jszip.min.js         ตัวอ่าน/เขียนไฟล์ xlsx
+.nojekyll                   กัน GitHub Pages รัน Jekyll build ทับไฟล์
+.github/workflows/pages.yml deploy ขึ้น GitHub Pages อัตโนมัติทุกครั้งที่ push
+```
+
+ไม่ใช้ CDN ทุกไฟล์เสิร์ฟจาก repo เดียวกัน
+
+## รายชื่อสินค้าที่ฝังอยู่ในแอป
+
+`index.html` มีฐานข้อมูลบาร์โค้ด → ชื่อสินค้า 16,459 รายการ ฝังเป็น xlsx (base64) อยู่ในตัวไฟล์ เพื่อให้สแกนแล้ว
+เติมชื่อสินค้าอัตโนมัติได้ทันทีโดยไม่ต้องต่อเน็ต — **repo นี้ตั้งเป็น private** อัปเดตรายชื่อ/ราคาเพิ่มเติมได้ผ่านไฟล์
+CSV ที่หน้าแอป (ไม่ต้องแก้ index.html) ดูหัวข้อด้านล่าง
+
+## หมายเหตุการใช้งาน
+
+- ต้องเปิดผ่าน https (GitHub Pages) กล้องถึงจะทำงาน — เปิดใน Safari บน iOS เท่านั้น
+- รายการที่สแกนและหัวฟอร์มบันทึกใน localStorage ของเครื่อง ไม่ส่งออกไปไหน
+- อัปเดตรายชื่อสินค้า/ราคา ด้วยไฟล์ CSV (UTF-8) หัวคอลัมน์ `BARCODE, ชื่อสินค้า, ราคา, หน่วย` — อัปโหลดที่หน้าแอป
+  (ปุ่ม "เลือกไฟล์ CSV…") ค่าที่อัปเดตจะเก็บทับไว้ใน localStorage ของเครื่องนั้น ไม่กระทบไฟล์ในตัว repo
