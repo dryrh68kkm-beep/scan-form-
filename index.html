@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#08743F">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>LP Scan Form — ADJ / RTC</title>
 <style>
 :root{
@@ -22,6 +26,7 @@ body{background:var(--bg); color:var(--navy);
 header.app{padding:calc(14px + env(safe-area-inset-top)) 20px 12px; display:flex;
   align-items:center; gap:12px; position:sticky; top:0; background:var(--bg); z-index:20}
 header.app h1{font-size:19px; font-weight:700; margin:0; flex:1}
+.app-mark{width:42px;height:42px;border-radius:13px;display:block;flex:0 0 auto;box-shadow:0 4px 12px rgba(8,116,63,.18)}
 .badge{font-size:12px; font-weight:700; padding:5px 12px; border-radius:999px; background:var(--blueSoft); color:var(--blueStrong)}
 .badge.rtc{background:var(--tealSoft); color:var(--tealStrong)}
 .card{background:var(--card); border:1px solid var(--border); border-radius:22px;
@@ -100,12 +105,40 @@ nav.tabs .tl{display:block; font-size:18px; margin-bottom:2px}
   opacity:0; transition:opacity .2s; pointer-events:none; max-width:88%}
 .toast.show{opacity:.95}
 hr.d{border:none; border-top:1px solid var(--divider); margin:18px 0}
+
+/* ---------- compact two-card home ---------- */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.home-heading{font-size:24px;line-height:1.25;margin:18px 0 18px;font-weight:800;letter-spacing:-.02em}
+.mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}
+button.mode-tile{appearance:none;-webkit-appearance:none;width:100%;min-width:0;padding:0 0 18px;background:#fff;border:1px solid var(--border);border-radius:20px;overflow:hidden;color:var(--navy);font:inherit;text-align:center;cursor:pointer;box-shadow:0 8px 22px rgba(20,40,58,.045);transition:transform .15s,border-color .15s,box-shadow .15s}
+button.mode-tile:active{transform:scale(.975)}
+button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-offset:3px}
+.mode-art{width:100%;aspect-ratio:1/1;overflow:hidden;background:var(--soft)}
+.mode-art img{display:block;width:100%;height:100%;object-fit:cover}
+.mode-copy{padding:14px 9px 0;display:flex;min-height:210px;flex-direction:column;align-items:center}
+.mode-code{font-size:31px;line-height:1;font-weight:850;letter-spacing:.02em;margin:0 0 12px}
+.mode-title{font-size:15px;line-height:1.35;font-weight:750;margin:0 0 4px}
+.mode-sub{font-size:12.5px;line-height:1.35;color:var(--sec);margin:0}
+.mode-cap{font-size:13px;font-weight:700;color:var(--success);margin:auto 0 12px}
+.mode-open{display:inline-flex;align-items:center;justify-content:center;min-width:72px;height:38px;padding:0 16px;border-radius:999px;background:var(--success);color:#fff;font-size:13px;font-weight:750}
+.home-meta{display:flex;align-items:center;justify-content:center;gap:10px;margin:16px 0 0;color:var(--sec);font-size:12.5px}
+.home-meta button{appearance:none;border:0;background:transparent;padding:8px;color:var(--success);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+@media(max-width:360px){
+  .wrap{padding-left:14px;padding-right:14px}
+  .mode-grid{gap:9px}
+  .mode-copy{padding-left:6px;padding-right:6px;min-height:202px}
+  .mode-code{font-size:27px}
+  .mode-title{font-size:14px}
+  .mode-sub,.mode-cap{font-size:11.5px}
+}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 
 <header class="app">
+  <img class="app-mark" src="assets/app-mark.webp" alt="" width="96" height="96">
   <h1 id="appTitle">LP Scan Form</h1>
   <span class="badge" id="syncBadge" style="display:none"></span>
   <span class="badge" id="modeBadge" style="display:none"></span>
@@ -124,41 +157,44 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:18px 0}
   </div>
 </section>
 
-<section id="vHome" class="wrap" style="display:none">
-  <div class="card mode-card" onclick="pickMode('ADJ')">
-    <div class="icon blue">ADJ</div>
-    <div style="flex:1;min-width:0">
-      <h2>ใบแก้ไขรายการ Adjust code</h2>
-      <p class="help">สแกน → เลือกโค้ด → จำนวน → เหตุผล</p>
-      <div class="status ok">หน้าละ 43 บรรทัด</div>
-    </div>
+<section id="vHome" class="wrap" style="display:none" aria-labelledby="homeHeading">
+  <h2 class="home-heading" id="homeHeading">เลือกแบบฟอร์ม</h2>
+
+  <div class="mode-grid">
+    <button class="mode-tile" type="button" onclick="pickMode('ADJ')" aria-label="เปิดใบแก้ไขรายการ Adjust code">
+      <div class="mode-art">
+        <img src="assets/adj-card.webp" alt="" width="480" height="480">
+      </div>
+      <div class="mode-copy">
+        <div class="mode-code">ADJ</div>
+        <div class="mode-title">ใบแก้ไขรายการ</div>
+        <p class="mode-sub">Adjust code</p>
+        <div class="mode-cap">43 บรรทัด/หน้า</div>
+        <span class="mode-open">เปิดฟอร์ม</span>
+      </div>
+    </button>
+
+    <button class="mode-tile" type="button" onclick="pickMode('RTC')" aria-label="เปิดฟอร์มลดราคา Markdown Price">
+      <div class="mode-art">
+        <img src="assets/rtc-card.webp" alt="" width="480" height="480">
+      </div>
+      <div class="mode-copy">
+        <div class="mode-code">RTC</div>
+        <div class="mode-title">ฟอร์มลดราคา</div>
+        <p class="mode-sub">Markdown Price</p>
+        <div class="mode-cap">20 บรรทัด/หน้า</div>
+        <span class="mode-open">เปิดฟอร์ม</span>
+      </div>
+    </button>
   </div>
 
-  <div class="card mode-card" onclick="pickMode('RTC')">
-    <div class="icon teal">RTC</div>
-    <div style="flex:1;min-width:0">
-      <h2>Markdown Price Form (RTC)</h2>
-      <p class="help">สแกน → ราคาขาย → % ลด → จำนวน</p>
-      <div class="status ok">หน้าละ 20 บรรทัด</div>
-    </div>
+  <div class="home-meta" aria-live="polite">
+    <span id="empInfo">—</span>
+    <span aria-hidden="true">·</span>
+    <button type="button" onclick="logoutEmployee()">เปลี่ยนพนักงาน</button>
   </div>
-
-  <div class="card">
-    <p class="help" id="empInfo" style="margin:0 0 6px">—</p>
-    <p class="help" id="masterInfo">กำลังเตรียมข้อมูล…</p>
-    <hr class="d">
-    <label class="fld">อัปเดตรายการสินค้า / เพิ่มราคาขาย — ไฟล์ CSV (ไม่บังคับ)</label>
-    <div class="filebtn"><button class="btn ghost" type="button">เลือกไฟล์ CSV…</button>
-      <input type="file" accept=".csv,text/csv" onchange="loadMaster(this)"></div>
-    <p class="help" style="margin-top:10px">
-      บันทึกจาก Excel เป็น CSV UTF-8 หัวคอลัมน์ BARCODE, ชื่อสินค้า, ราคา, หน่วย — อัปเดตนี้จะซิงก์ขึ้นฐานข้อมูลกลางด้วย
-    </p>
-    <button class="btn ghost" style="margin-top:14px" onclick="logoutEmployee()">ออกจากระบบ / เปลี่ยนพนักงาน</button>
-  </div>
-
-  <div class="note" style="margin-bottom:28px">
-    ฟอร์มต้นแบบทั้ง 2 แบบฝังอยู่ในแอปแล้ว ไฟล์ที่ Export ออกมาจะเป็นฟอร์มเดิมทุกอย่าง<br>
-    กล้องเปิดได้เฉพาะเมื่อเข้าผ่าน https เช่น GitHub Pages ถ้าเปิดไฟล์ตรงๆ ให้ใช้ปุ่มพิมพ์บาร์โค้ดเอง
+  <div class="sr-only" aria-live="polite">
+    <span id="masterInfo">กำลังเตรียมข้อมูล…</span>
   </div>
 </section>
 
@@ -187,7 +223,7 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:18px 0}
   <div class="card" id="expBox">
     <h2 id="finishTitle">จบเอกสาร</h2>
     <p class="help" id="expInfo" style="margin-bottom:14px"></p>
-    <button class="btn" id="finishBtn" style="margin-bottom:10px" onclick="finishDocument()">จบเอกสาร (ล็อกรายการ)</button>
+    <button class="btn" id="finishBtn" style="margin-bottom:10px" onclick="finishDocument()">บันทึกและจบเอกสาร</button>
     <button class="btn danger" onclick="clearAll()">ล้างรายการทั้งหมด</button>
   </div>
 </section>
@@ -298,6 +334,10 @@ function setSyncBadge(state){
   const b=$('syncBadge'); b.style.display='inline-block';
   if(state==='online'){ b.textContent='ออนไลน์'; b.style.background='var(--tealSoft)'; b.style.color='var(--tealStrong)'; }
   else if(state==='syncing'){ b.textContent='กำลังซิงก์…'; b.style.background='var(--blueSoft)'; b.style.color='var(--blueStrong)'; }
+  else if(state==='draft'){
+    b.textContent=S.online?'ร่างในมือถือ':'ร่างออฟไลน์';
+    b.style.background='#FDF4E5'; b.style.color='var(--warn)';
+  }
   else { b.textContent='ออฟไลน์'; b.style.background='#FDF4E5'; b.style.color='var(--warn)'; }
 }
 function loadProductsFromCache(){
@@ -311,32 +351,71 @@ async function loadProductsFromFirestore(){
   try{ localStorage.setItem('lpsf_products_cache', JSON.stringify(map)); }catch(e){}
 }
 
-/* ---------- offline queue: เอกสารปัจจุบัน (single writer ต่อเครื่อง จึงไม่มี conflict ข้ามอุปกรณ์) ---------- */
-let syncTimer=null;
-function docSnapshot(){
+/* ---------- local draft + finished queue ---------- */
+function docSnapshot(status){
   return {
     mode:S.mode, employeeCode:S.employee.code, employeeName:S.employee.name,
     branch:$('fBranch').value.trim(), dept:$('fDept').value.trim(), date:$('fDate').value,
-    status: S.locked?'ready':'scanning',
+    status:status || 'scanning',
     itemCount:S.items[S.mode].length, items:S.items[S.mode],
-    downloadCount:0, updatedAt:new Date()
+    updatedAt:new Date().toISOString()
   };
 }
-function scheduleSync(){
+function draftKey(code){ return 'lpsf_draft_doc_'+code; }
+function saveDraft(){
   if(!S.docId||!S.employee) return;
-  try{ localStorage.setItem('lpsf_pending_doc', JSON.stringify({id:S.docId, doc:docSnapshot()})); }catch(e){}
-  clearTimeout(syncTimer);
-  syncTimer=setTimeout(trySyncDoc, 600);
+  try{ localStorage.setItem(draftKey(S.employee.code), JSON.stringify({id:S.docId, doc:docSnapshot('scanning')})); }catch(e){}
+  setSyncBadge('draft');
 }
-async function trySyncDoc(){
-  let pend; try{ pend=JSON.parse(localStorage.getItem('lpsf_pending_doc')||'null'); }catch(e){ pend=null; }
-  if(!pend) return;
-  setSyncBadge('syncing');
+function loadDraft(code){
+  try{ return JSON.parse(localStorage.getItem(draftKey(code))||'null'); }catch(e){ return null; }
+}
+function clearDraft(code){
+  try{ localStorage.removeItem(draftKey(code)); }catch(e){}
+}
+function loadFinishedQueue(){
+  try{ const q=JSON.parse(localStorage.getItem('lpsf_finished_queue')||'[]'); return Array.isArray(q)?q:[]; }
+  catch(e){ return []; }
+}
+function saveFinishedQueue(q){
+  try{ localStorage.setItem('lpsf_finished_queue',JSON.stringify(q)); }catch(e){}
+}
+function enqueueFinished(entry){
+  const q=loadFinishedQueue(), i=q.findIndex(x=>x.id===entry.id);
+  if(i>=0) q[i]=entry; else q.push(entry);
+  saveFinishedQueue(q);
+}
+function migrateLegacyPending(){
+  let old; try{ old=JSON.parse(localStorage.getItem('lpsf_pending_doc')||'null'); }catch(e){ old=null; }
+  if(!old||!old.id||!old.doc) return;
   try{
-    await window.fsUpsert('documents', pend.id, pend.doc);
+    if(old.doc.status==='ready') enqueueFinished(old);
+    else if(old.doc.employeeCode && !loadDraft(old.doc.employeeCode))
+      localStorage.setItem(draftKey(old.doc.employeeCode),JSON.stringify(old));
     localStorage.removeItem('lpsf_pending_doc');
-    S.online=true; setSyncBadge('online');
-  }catch(e){ S.online=false; setSyncBadge('offline'); }
+  }catch(e){}
+}
+let finishedSyncing=false;
+async function trySyncFinishedDocs(){
+  if(finishedSyncing) return false;
+  finishedSyncing=true;
+  let allSynced=true;
+  try{
+    while(true){
+      const q=loadFinishedQueue();
+      if(!q.length) break;
+      const current=q[0];
+      setSyncBadge('syncing');
+      try{
+        await window.fsUpsert('documents',current.id,current.doc);
+        saveFinishedQueue(loadFinishedQueue().filter(x=>x.id!==current.id));
+        S.online=true; setSyncBadge('online');
+      }catch(e){
+        allSynced=false; S.online=false; setSyncBadge('offline'); break;
+      }
+    }
+  }finally{ finishedSyncing=false; }
+  return allSynced && loadFinishedQueue().length===0;
 }
 function queueProduct(bc,name){
   let q; try{ q=JSON.parse(localStorage.getItem('lpsf_pending_products')||'[]'); }catch(e){ q=[]; }
@@ -353,8 +432,8 @@ async function tryFlushProducts(){
   }
   try{ localStorage.setItem('lpsf_pending_products', JSON.stringify(rest)); }catch(e){}
 }
-window.addEventListener('online', ()=>{ trySyncDoc(); tryFlushProducts(); });
-setInterval(()=>{ trySyncDoc(); tryFlushProducts(); }, 8000);
+window.addEventListener('online', ()=>{ trySyncFinishedDocs(); tryFlushProducts(); });
+setInterval(()=>{ trySyncFinishedDocs(); tryFlushProducts(); }, 8000);
 
 /* ---------- เข้าสู่ระบบด้วยรหัสพนักงาน ---------- */
 window.checkEmployee = async function(){
@@ -382,22 +461,11 @@ window.logoutEmployee = function(){
 };
 async function afterLogin(){
   $('empInfo').textContent='พนักงาน: '+S.employee.name+' ('+S.employee.code+')';
-  let openDoc=null;
-  if(S.online){
-    try{
-      const rows=await window.fsQuery('documents','employeeCode','EQUAL',S.employee.code);
-      openDoc=rows.find(d=>d.status==='scanning')||null;
-    }catch(e){}
-  }
-  if(!openDoc){
-    let pend; try{ pend=JSON.parse(localStorage.getItem('lpsf_pending_doc')||'null'); }catch(e){ pend=null; }
-    if(pend && pend.doc.employeeCode===S.employee.code && pend.doc.status==='scanning'){
-      openDoc=Object.assign({_id:pend.id}, pend.doc);
-    }
-  }
+  const draft=loadDraft(S.employee.code);
   $('vLogin').style.display='none';
-  if(openDoc){
-    S.docId=openDoc._id; S.locked=false;
+  if(draft&&draft.id&&draft.doc){
+    const openDoc=draft.doc;
+    S.docId=draft.id; S.locked=false;
     S.items[openDoc.mode]=openDoc.items||[];
     $('fBranch').value=openDoc.branch||''; $('fDept').value=openDoc.dept||'';
     $('fDate').value=openDoc.date||new Date().toISOString().slice(0,10);
@@ -426,7 +494,8 @@ async function initApp(){
     (S.online?' (ซิงก์ล่าสุดจากส่วนกลาง)':' (โหมดออฟไลน์ — ใช้ข้อมูลที่เคยซิงก์ไว้ในเครื่องนี้)');
   $('fDate').value=new Date().toISOString().slice(0,10);
   buildChips();
-  trySyncDoc(); tryFlushProducts();
+  migrateLegacyPending();
+  trySyncFinishedDocs(); tryFlushProducts();
   let savedCode; try{ savedCode=localStorage.getItem('lpsf_employee_code'); }catch(e){ savedCode=null; }
   if(savedCode){
     $('fEmpCode').value=savedCode;
@@ -491,6 +560,7 @@ async function loadMaster(inp){
 /* ---------- navigation ---------- */
 function applyModeUI(m){
   S.mode=m;
+  if(S.docId&&!S.locked) setSyncBadge('draft');
   $('modeBadge').style.display='inline-block';
   $('modeBadge').textContent=m;
   $('modeBadge').className='badge'+(m==='RTC'?' rtc':'');
@@ -502,10 +572,15 @@ function applyModeUI(m){
 }
 function pickMode(m){
   if(!S.employee){ toast('กรุณาเข้าสู่ระบบก่อน'); return; }
+  if(S.docId&&S.mode){
+    if(m!==S.mode) toast('มีเอกสาร '+S.mode+' ค้างอยู่ — กรุณาบันทึกและจบเอกสารก่อน');
+    applyModeUI(S.mode);
+    return;
+  }
   S.docId='DOC-'+m+'-'+S.employee.code+'-'+docTimeStamp()+'-'+Math.random().toString(36).slice(2,5);
   S.items[m]=[]; S.locked=false;
   applyModeUI(m);
-  scheduleSync();
+  saveDraft();
   toast('สร้างเอกสารใหม่: '+S.docId);
 }
 function go(v){
@@ -516,7 +591,7 @@ function go(v){
   $('tabScan').classList.toggle('on', v==='scan');
   $('tabList').classList.toggle('on', v==='list');
   if(v==='home'){ stopCam(); $('tabs').style.display='none'; $('modeBadge').style.display='none';
-    $('appTitle').textContent='LP Scan Form'; S.mode=null; return; }
+    $('appTitle').textContent='LP Scan Form'; return; }
   if(v==='scan') startCam();
   if(v==='list'){ stopCam(); renderList(); }
   window.scrollTo(0,0);
@@ -651,7 +726,7 @@ function saveItem(){
     queueProduct(bc,name);
   }
   persist();
-  scheduleSync();
+  saveDraft();
   closeSheet();
   const n=S.items[S.mode].length;
   $('scanCount').textContent='บันทึกแล้ว '+n+' รายการ';
@@ -687,9 +762,9 @@ function renderList(){
   renderExport();
 }
 function delItem(i){ if(S.locked){ toast('เอกสารถูกล็อกแล้ว'); return; }
-  if(!confirm('ลบรายการนี้?')) return; S.items[S.mode].splice(i,1); persist(); scheduleSync(); renderList(); }
+  if(!confirm('ลบรายการนี้?')) return; S.items[S.mode].splice(i,1); persist(); saveDraft(); renderList(); }
 function clearAll(){ if(S.locked){ toast('เอกสารถูกล็อกแล้ว'); return; }
-  if(!confirm('ล้างรายการทั้งหมดในโหมดนี้?')) return; S.items[S.mode]=[]; persist(); scheduleSync(); renderList(); }
+  if(!confirm('ล้างรายการทั้งหมดในโหมดนี้?')) return; S.items[S.mode]=[]; persist(); saveDraft(); renderList(); }
 function renderExport(){
   const n=S.items[S.mode].length;
   if(S.locked){
@@ -698,7 +773,7 @@ function renderExport(){
     $('finishBtn').style.display='none';
   }else{
     $('finishTitle').textContent='จบเอกสาร';
-    $('expInfo').textContent=n+' รายการ · เอกสาร '+(S.docId||'')+' — กด "จบเอกสาร" เมื่อสแกนครบแล้ว';
+    $('expInfo').textContent=n+' รายการ · เก็บอยู่ในมือถือเท่านั้น — กด "บันทึกและจบเอกสาร" เมื่อสแกนครบแล้ว';
     $('finishBtn').style.display='block';
   }
 }
@@ -707,11 +782,15 @@ function renderExport(){
 window.finishDocument = async function(){
   if(S.locked) return;
   if(!S.items[S.mode].length){ toast('ยังไม่มีรายการให้จบเอกสาร'); return; }
-  if(!confirm('ยืนยันจบเอกสาร? หลังจากนี้จะแก้ไขจากมือถือไม่ได้ (แก้ต่อได้จากเดสก์ท็อป)')) return;
+  if(!confirm('ยืนยันบันทึกและจบเอกสาร? ระบบจะส่งข้อมูลขึ้นเดสก์ท็อป และหลังจากนี้จะแก้ไขจากมือถือไม่ได้')) return;
   S.locked=true;
-  scheduleSync();
-  await trySyncDoc();
-  toast('จบเอกสาร '+S.docId+' แล้ว — ล็อกเรียบร้อย รอเดสก์ท็อปพิมพ์');
+  const finishedId=S.docId;
+  enqueueFinished({id:finishedId,doc:docSnapshot('ready')});
+  clearDraft(S.employee.code);
+  const synced=await trySyncFinishedDocs();
+  toast(synced
+    ? 'บันทึกเอกสาร '+finishedId+' แล้ว — เปิดจากเดสก์ท็อปได้'
+    : 'บันทึกไว้ในมือถือแล้ว — จะส่งขึ้นเดสก์ท็อปอัตโนมัติเมื่อออนไลน์');
   renderList();
   setTimeout(()=>{ S.docId=null; S.locked=false; S.items[S.mode]=[]; go('home'); }, 1500);
 };
@@ -724,7 +803,7 @@ function persist(){
     }));
   }catch(e){}
 }
-['fBranch','fDept','fDate'].forEach(id=>$(id).addEventListener('change', ()=>{ persist(); scheduleSync(); }));
+['fBranch','fDept','fDate'].forEach(id=>$(id).addEventListener('change', ()=>{ persist(); saveDraft(); }));
 </script>
 </body>
 </html>
