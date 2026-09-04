@@ -111,6 +111,11 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
       </div>
       <button class="btn" onclick="addEmployee()">เพิ่มพนักงาน</button>
       <hr class="d">
+      <p class="tag" style="margin-bottom:12px">หรืออัปโหลดทีเดียวหลายคน — หัวคอลัมน์: รหัสพนักงาน (หรือ CODE), ชื่อ-สกุล (หรือ NAME) — บันทึกจาก Excel เป็น CSV UTF-8</p>
+      <div class="filebtn"><button class="btn ghost" type="button">เลือกไฟล์ CSV พนักงาน…</button>
+        <input type="file" accept=".csv,text/csv" onchange="uploadEmployees(this)"></div>
+      <p id="employeesMsg" style="margin-top:10px;color:var(--sec);font-size:13px"></p>
+      <hr class="d">
       <table>
         <thead><tr><th>รหัส</th><th>ชื่อ</th><th></th></tr></thead>
         <tbody id="empBody"></tbody>
@@ -375,6 +380,28 @@ window.uploadProducts = async function(inp){
     $('productsMsg').textContent='อัปโหลดสำเร็จ '+ok+'/'+total+' รายการ';
     toast('อัปเดตฐานข้อมูลสินค้าแล้ว');
   }catch(e){ console.error(e); $('productsMsg').textContent='อ่านไฟล์ไม่สำเร็จ'; }
+};
+window.uploadEmployees = async function(inp){
+  const f=inp.files[0]; if(!f) return;
+  $('employeesMsg').textContent='กำลังอ่านไฟล์…';
+  try{
+    const rows=parseCSV(await f.text());
+    const h=(rows[0]||[]).map(x=>String(x||'').trim().toUpperCase());
+    const find=ks=>h.findIndex(x=>ks.some(k=>x.indexOf(k)>=0));
+    const iC=find(['CODE','รหัส']), iN=find(['NAME','ชื่อ']);
+    if(iC<0){ $('employeesMsg').textContent='ไม่พบคอลัมน์รหัสพนักงาน'; return; }
+    let ok=0, total=0;
+    for(let i=1;i<rows.length;i++){
+      const code=String(rows[i][iC]||'').trim(); if(!code) continue;
+      total++;
+      const name=iN>=0&&rows[i][iN]?String(rows[i][iN]).trim():code;
+      try{ await window.fsUpsert('employees', code, {name, active:true}); ok++; }catch(e){}
+      if(total%50===0) $('employeesMsg').textContent='กำลังอัปโหลด… '+ok+'/'+total;
+    }
+    $('employeesMsg').textContent='อัปโหลดสำเร็จ '+ok+'/'+total+' คน';
+    toast('อัปเดตรายชื่อพนักงานแล้ว');
+    loadEmployees();
+  }catch(e){ console.error(e); $('employeesMsg').textContent='อ่านไฟล์ไม่สำเร็จ'; }
 };
 
 /* ---------- init ---------- */
