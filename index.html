@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#08743F">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/app-icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>LP Scan Form — ADJ / RTC</title>
 <style>
 :root{
@@ -22,6 +26,7 @@ body{background:var(--bg); color:var(--navy);
 header.app{padding:calc(14px + env(safe-area-inset-top)) 20px 12px; display:flex;
   align-items:center; gap:12px; position:sticky; top:0; background:var(--bg); z-index:20}
 header.app h1{font-size:19px; font-weight:700; margin:0; flex:1}
+.app-mark{width:42px;height:42px;border-radius:13px;display:block;flex:0 0 auto;box-shadow:0 4px 12px rgba(8,116,63,.18)}
 .badge{font-size:12px; font-weight:700; padding:5px 12px; border-radius:999px; background:var(--blueSoft); color:var(--blueStrong)}
 .badge.rtc{background:var(--tealSoft); color:var(--tealStrong)}
 .card{background:var(--card); border:1px solid var(--border); border-radius:22px;
@@ -133,6 +138,7 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
 <body>
 
 <header class="app">
+  <img class="app-mark" src="assets/app-mark.webp" alt="" width="96" height="96">
   <h1 id="appTitle">LP Scan Form</h1>
   <span class="badge" id="syncBadge" style="display:none"></span>
   <span class="badge" id="modeBadge" style="display:none"></span>

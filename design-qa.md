@@ -13,6 +13,7 @@ PASS — no open P0, P1, or P2 issues.
 - [x] Existing `pickMode('ADJ')` and `pickMode('RTC')` entry points are preserved.
 - [x] Thai and English labels, line capacities, and accessible card labels are present.
 - [x] Green is used for the primary card action and capacity emphasis.
+- [x] The 3D scan/document icon appears in the header and is provided for favicon, Apple touch icon, and installable web-app sizes.
 - [x] Both columns use `minmax(0, 1fr)` and have a small-screen rule at 360 px.
 - [x] Employee identity and a compact “change employee” action remain available without adding a third card.
 - [x] Existing `empInfo` and `masterInfo` nodes remain available to the current JavaScript.
