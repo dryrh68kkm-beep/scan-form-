@@ -135,7 +135,9 @@
   .hint{font-size:11px; color:var(--muted); margin-top:4px; line-height:1.5;}
   .empty{text-align:center; color:var(--muted); font-size:12px; padding:16px 0;}
   #cameraWrap{display:none; margin-bottom:10px;}
-  #cameraWrap video{width:100%; border-radius:10px; background:#000;}
+  #qrReaderContainer{width:100%; border-radius:10px; overflow:hidden; background:#000;}
+  #qrReaderContainer video{width:100% !important; border-radius:10px;}
+  #qrReaderContainer img{display:none;}
   .toast{
     position:fixed; bottom:86px; left:50%; transform:translateX(-50%);
     background:var(--navy); color:#fff; padding:9px 16px; border-radius:20px;
@@ -195,8 +197,8 @@
           <button class="btn-teal btn-icon" id="btnCamera" type="button">📷</button>
         </div>
         <div id="cameraWrap">
-          <video id="cameraVideo" playsinline muted></video>
-          <div class="hint">เล็งกล้องไปที่บาร์โค้ด — รองรับเฉพาะเบราว์เซอร์ที่มี BarcodeDetector (Chrome/Edge Android)</div>
+          <div id="qrReaderContainer"></div>
+          <div class="hint">เล็งกล้องไปที่บาร์โค้ด/QR Code — รองรับ Android และ iOS Safari (ต้องอนุญาตใช้กล้อง)</div>
           <button class="btn-ghost btn-block" id="btnCameraStop" type="button" style="margin-top:6px;">ปิดกล้อง</button>
         </div>
       </div>
@@ -434,6 +436,7 @@
   <button data-panel="panel-codes"><span class="ic">📖</span>Adjust Code</button>
 </nav>
 
+<script src="vendor/html5-qrcode.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -509,56 +512,55 @@
   var getLpResult = wireChips("lpResultChips");
   var getNegStatus = wireChips("negStatusChips");
 
-  // ---------- camera barcode scan ----------
+  // ---------- camera barcode scan (html5-qrcode, works on Android + iOS Safari) ----------
   var cameraWrap = document.getElementById("cameraWrap");
-  var cameraVideo = document.getElementById("cameraVideo");
   var btnCamera = document.getElementById("btnCamera");
   var btnCameraStop = document.getElementById("btnCameraStop");
-  var mediaStream = null;
-  var scanLoopId = null;
+  var qrScanner = (typeof Html5Qrcode !== "undefined") ? new Html5Qrcode("qrReaderContainer", {
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.ITF
+    ],
+    verbose: false
+  }) : null;
+  var cameraRunning = false;
 
   function stopCamera(){
-    if(scanLoopId) cancelAnimationFrame(scanLoopId);
-    scanLoopId = null;
-    if(mediaStream){
-      mediaStream.getTracks().forEach(function(t){ t.stop(); });
-      mediaStream = null;
-    }
     cameraWrap.style.display = "none";
+    if(qrScanner && cameraRunning){
+      cameraRunning = false;
+      qrScanner.stop().catch(function(){});
+    }
   }
 
   btnCamera.addEventListener("click", function(){
-    if(!("BarcodeDetector" in window)){
+    if(!qrScanner){
       toast("อุปกรณ์นี้ไม่รองรับสแกนกล้อง — กรุณาพิมพ์บาร์โค้ดเอง");
       return;
     }
+    if(cameraRunning){ stopCamera(); return; }
     cameraWrap.style.display = "block";
-    navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}})
-      .then(function(stream){
-        mediaStream = stream;
-        cameraVideo.srcObject = stream;
-        cameraVideo.play();
-        var detector = new window.BarcodeDetector({formats:["ean_13","ean_8","code_128","upc_a","upc_e","code_39"]});
-        function tick(){
-          if(!mediaStream) return;
-          detector.detect(cameraVideo).then(function(codes){
-            if(codes && codes.length){
-              document.getElementById("scanBarcode").value = codes[0].rawValue;
-              toast("สแกนได้: " + codes[0].rawValue);
-              stopCamera();
-            } else {
-              scanLoopId = requestAnimationFrame(tick);
-            }
-          }).catch(function(){
-            scanLoopId = requestAnimationFrame(tick);
-          });
-        }
-        scanLoopId = requestAnimationFrame(tick);
-      })
-      .catch(function(){
-        toast("ไม่สามารถเปิดกล้องได้ — ตรวจสอบสิทธิ์การเข้าถึงกล้อง");
-        cameraWrap.style.display = "none";
-      });
+    qrScanner.start(
+      {facingMode:"environment"},
+      {fps:10, qrbox:{width:260, height:140}},
+      function onScanSuccess(decodedText){
+        document.getElementById("scanBarcode").value = decodedText;
+        toast("สแกนได้: " + decodedText);
+        stopCamera();
+      },
+      function onScanFailure(){ /* ignore per-frame no-match */ }
+    ).then(function(){
+      cameraRunning = true;
+    }).catch(function(){
+      toast("ไม่สามารถเปิดกล้องได้ — ตรวจสอบสิทธิ์การเข้าถึงกล้อง");
+      cameraWrap.style.display = "none";
+    });
   });
   btnCameraStop.addEventListener("click", stopCamera);
 
