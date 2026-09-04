@@ -660,18 +660,24 @@ function applyModeUI(m){
   paintHomeIdentity();
   go('scan');
 }
+// หน่วงก่อนสลับหน้าจอเล็กน้อย (ตัวเลขจับเวลาเท่านั้น ไม่เปลี่ยนลำดับ/ผลลัพธ์ของ logic) —
+// เดิมกดการ์ด ADJ/RTC แล้วสลับจากหน้า Home ไปหน้าสแกนทันทีในจังหวะเดียวกับที่นิ้วปล่อยจากปุ่ม
+// เบราว์เซอร์เลยไม่มีเวลาวาดเฟรม animation กดปุ่ม (:active) ให้เห็นก่อนหน้าจอจะเปลี่ยนไปแล้ว
+var MODE_TILE_TAP_DELAY=130;
 function pickMode(m){
   if(!S.employee){ toast('กรุณาเข้าสู่ระบบก่อน'); return; }
   if(S.docId&&S.mode){
     if(m!==S.mode) toast('มีเอกสาร '+S.mode+' ค้างอยู่ — กรุณาบันทึกและจบเอกสารก่อน');
-    applyModeUI(S.mode);
+    setTimeout(()=>applyModeUI(S.mode), MODE_TILE_TAP_DELAY);
     return;
   }
   S.docId='DOC-'+m+'-'+S.employee.code+'-'+docTimeStamp()+'-'+Math.random().toString(36).slice(2,5);
   S.items[m]=[]; S.locked=false;
-  applyModeUI(m);
-  saveDraft();
-  toast('สร้างเอกสารใหม่: '+S.docId);
+  setTimeout(()=>{
+    applyModeUI(m);
+    saveDraft();
+    toast('สร้างเอกสารใหม่: '+S.docId);
+  }, MODE_TILE_TAP_DELAY);
 }
 function go(v){
   S.view=v;
