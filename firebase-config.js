@@ -18,11 +18,3 @@ var FIREBASE_CONFIG = {
   apiKey: 'AIzaSyCiSB77UsUXpikmd60TXh0We8GhQuHy8BI',
   projectId: 'scanning-829f5'
 };
-
-/* โหลดชุดปรับหน้า Home แยกจาก logic หลัก เพื่อไม่แตะระบบสแกน/บันทึกข้อมูล */
-(function(){
-  var s=document.createElement('script');
-  s.src='js/home-redesign.js';
-  s.defer=true;
-  document.head.appendChild(s);
-})();
