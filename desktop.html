@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#08743F">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/desktop-icon-192.png">
+<link rel="apple-touch-icon" href="assets/desktop-icon-192.png">
+<link rel="manifest" href="desktop-manifest.webmanifest">
 <title>LP Scan Form — เดสก์ท็อป</title>
 <style>
 :root{
@@ -21,6 +25,9 @@ header.app{display:flex; align-items:center; gap:14px; padding:18px 28px; backgr
   position:sticky; top:0; z-index:20; border-bottom:1px solid var(--border)}
 header.app h1{font-size:20px; margin:0; flex:1}
 .badge{font-size:12px; font-weight:700; padding:5px 12px; border-radius:999px; background:var(--blueSoft); color:var(--blueStrong)}
+.install-btn{border:1px solid #08743F;background:#fff;color:#08743F;border-radius:10px;padding:7px 13px;font:700 13px inherit;cursor:pointer;white-space:nowrap}
+.install-btn:hover{background:#E9F8EF}.install-btn:disabled{display:none}
+@media(max-width:620px){.install-btn{font-size:0;padding:7px 10px}.install-btn::after{content:"ติดตั้ง";font-size:13px}}
 .tabbar{display:flex; gap:8px; margin-bottom:20px}
 .tabbar button{border:none; background:var(--card); border:1px solid var(--border); padding:10px 18px;
   border-radius:12px; font-family:inherit; font-size:14px; font-weight:700; color:var(--sec); cursor:pointer}
@@ -69,7 +76,9 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
 <body>
 
 <header class="app">
+  <img src="assets/desktop-icon-192.png" width="42" height="42" alt="" style="border-radius:12px;box-shadow:0 4px 12px rgba(8,116,63,.18)">
   <h1>LP Scan Form — เดสก์ท็อป</h1>
+  <button class="install-btn" id="installBtn" type="button">ติดตั้งบนเดสก์ท็อป</button>
   <span class="badge" id="syncBadge">กำลังเชื่อมต่อ…</span>
 </header>
 
@@ -411,6 +420,27 @@ async function init(){
   setInterval(loadDocs, 4000);
 }
 window.addEventListener('load', init);
+</script>
+
+<script>
+(function(){
+  var installPrompt=null;
+  var btn=document.getElementById('installBtn');
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',function(){ navigator.serviceWorker.register('./sw.js').catch(function(e){ console.warn('Service worker:',e); }); });
+  }
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault(); installPrompt=e;
+  });
+  window.addEventListener('appinstalled',function(){ installPrompt=null; if(btn) btn.disabled=true; });
+  if(btn) btn.addEventListener('click',async function(){
+    if(window.matchMedia('(display-mode: standalone)').matches){ toast('ติดตั้งแอปนี้แล้ว'); return; }
+    if(installPrompt){
+      installPrompt.prompt(); await installPrompt.userChoice; installPrompt=null; return;
+    }
+    toast('กดเมนู ⋮ ของ Chrome/Edge แล้วเลือก “ติดตั้ง LP Scan Desktop”');
+  });
+})();
 </script>
 </body>
 </html>
