@@ -155,6 +155,30 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
   .mode-open{width:92%;height:42px;font-size:13.5px}
 }
 
+/* ---------- login screen refresh ---------- */
+#vLogin{position:relative;isolation:isolate;overflow:hidden;padding-top:26px;padding-bottom:8px}
+#vLogin::before,#vLogin::after{content:"";position:absolute;z-index:-1;border-radius:50%;pointer-events:none}
+#vLogin::before{width:300px;height:300px;right:-190px;top:-50px;background:rgba(170,238,220,.18)}
+#vLogin::after{width:230px;height:230px;left:-150px;top:250px;background:rgba(120,232,196,.13)}
+.login-card{border-radius:30px;border-color:rgba(151,214,196,.55);box-shadow:0 16px 34px rgba(20,40,58,.08);padding:28px 24px}
+.login-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.login-head .icon{width:48px;height:48px;border-radius:15px;flex:0 0 auto}
+.login-card h2{font-size:22px;font-weight:850;letter-spacing:-.01em;margin:0}
+.login-card .help{color:#7C93A2;font-size:14px;line-height:1.55;margin:0 0 22px}
+.login-input-wrap{position:relative}
+.login-input-wrap svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--success);pointer-events:none}
+.login-input-wrap input{height:58px;border-radius:17px;padding-left:48px;border-color:rgba(151,214,196,.75);font-size:16px}
+.login-input-wrap input:focus{border-color:var(--success);box-shadow:0 0 0 3px rgba(22,155,117,.14)}
+.login-btn{height:58px;border-radius:20px;background:linear-gradient(180deg,#12B77E,#079763);
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 10px 22px rgba(7,151,99,.24);margin-top:22px}
+.login-btn::after{content:"›";font-size:22px;line-height:1;margin-top:-2px}
+.login-card .help#loginMsg:not(:empty){margin-top:14px;padding:10px 13px;background:#FCEEED;border-radius:12px;font-size:13.5px;line-height:1.5}
+@media(max-width:390px){
+  .login-card{padding:24px 20px}
+  .login-card h2{font-size:20px}
+}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -171,14 +195,22 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
 </header>
 
 <section id="vLogin" class="wrap">
-  <div class="card">
-    <h2>เข้าสู่ระบบ</h2>
-    <p class="help">กรอกรหัสพนักงานเพื่อเริ่มงาน — ระบบจะตรวจกับรายชื่อพนักงานก่อนเสมอ</p>
-    <div class="field" style="margin-top:16px">
-      <label class="fld">รหัสพนักงาน</label>
-      <input id="fEmpCode" placeholder="เช่น E1023" autocapitalize="characters">
+  <div class="card login-card">
+    <div class="login-head">
+      <span class="icon teal" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>
+      </span>
+      <h2>เข้าสู่ระบบ</h2>
     </div>
-    <button class="btn" onclick="checkEmployee()">เริ่มงาน</button>
+    <p class="help">กรอกรหัสพนักงานเพื่อเริ่มงาน — ระบบจะตรวจกับรายชื่อพนักงานก่อนเสมอ</p>
+    <div class="field" style="margin-top:0">
+      <label class="fld" for="fEmpCode">รหัสพนักงาน</label>
+      <div class="login-input-wrap">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><circle cx="9" cy="11" r="2"/><path d="M15 10h4M15 14h4M6 16h6"/></svg>
+        <input id="fEmpCode" placeholder="เช่น E1023" autocapitalize="characters">
+      </div>
+    </div>
+    <button class="btn login-btn" onclick="checkEmployee()">เริ่มงาน</button>
     <p class="help" id="loginMsg" style="margin-top:12px;color:var(--danger)"></p>
   </div>
 </section>
