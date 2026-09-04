@@ -97,7 +97,32 @@ window.buildExportXlsx = async function (mode, items, meta, page) {
   zipCopy.file(EXPORT_SHEET_PATH, xml);
   const out = await zipCopy.generateAsync({ type: 'blob',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const filename = mode + '_' + (branch || 'store').replace(/\s+/g, '') + '_' +
+  const docPart = meta.docId ? (meta.docId + '_') : '';
+  const filename = mode + '_' + docPart + (branch || 'store').replace(/\s+/g, '') + '_' +
     (meta.date || 'form') + (page > 0 ? ('_p' + (page + 1)) : '') + '.xlsx';
+  return { blob: out, filename: filename };
+};
+
+/*
+ * ห่อเอกสารทั้งหมดเป็นไฟล์เดียว ไม่ว่าจะกี่หน้า — เอกสารที่มีรายการเกิน 1 หน้า (เกิน 43/20 แถว)
+ * จะถูกรวมเป็นไฟล์ .zip เดียว (มีหลาย .xlsx ข้างในตามจำนวนหน้า) แทนการดาวน์โหลดหลายไฟล์แยกกัน
+ * เพราะเทมเพลตต้นฉบับแต่ละหน้าเป็นฟอร์มพิมพ์แยกกันจริง (คนละใบกระดาษ) รวมเป็นชีทเดียวไม่ได้
+ * โดยไม่เสี่ยงทำให้ไฟล์ .xlsx เสีย — แต่ยังเป็น "การดาวน์โหลดครั้งเดียว ไฟล์เดียว" ตามที่ต้องการ
+ */
+window.buildExportPackage = async function (mode, items, meta) {
+  const cfg = EXPORT_CFG[mode], cap = cfg.last - cfg.first + 1;
+  const pages = Math.max(1, Math.ceil((items || []).length / cap));
+  if (pages <= 1) {
+    return window.buildExportXlsx(mode, items, meta, 0);
+  }
+  const pkg = new JSZip();
+  for (let p = 0; p < pages; p++) {
+    const { blob, filename } = await window.buildExportXlsx(mode, items, meta, p);
+    pkg.file(filename, blob);
+  }
+  const out = await pkg.generateAsync({ type: 'blob', mimeType: 'application/zip' });
+  const docPart = meta.docId ? (meta.docId + '_') : '';
+  const filename = mode + '_' + docPart + (meta.branch || 'store').replace(/\s+/g, '') + '_' +
+    (meta.date || 'form') + '_' + pages + 'pages.zip';
   return { blob: out, filename: filename };
 };

@@ -311,7 +311,8 @@ const S = { mode:null, view:'home', master:{}, items:{ADJ:[], RTC:[]},
 const $ = id => document.getElementById(id);
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show');
   clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove('show'),1900); }
-function normBc(v){ const d=String(v==null?'':v).replace(/\D/g,''); return d.replace(/^0+(?=\d)/,''); }
+// ห้ามตัดเลข 0 นำหน้าออก — บาร์โค้ดจริง (เช่น EAN-13) มีความหมายทุกหลักรวมถึง 0 นำหน้า
+function normBc(v){ return String(v==null?'':v).replace(/\D/g,''); }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function thDate(iso){ if(!iso) return ''; const p=iso.split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; }
 function roundUpPrice(price,pct){ return Math.ceil(Number((price-(price*pct)).toFixed(6))); }
@@ -407,7 +408,13 @@ async function trySyncFinishedDocs(){
       const current=q[0];
       setSyncBadge('syncing');
       try{
-        await window.fsUpsert('documents',current.id,current.doc);
+        try{
+          await window.fsCreate('documents',current.id,current.doc);
+        }catch(e){
+          // เอกสารนี้ถูกสร้างไปแล้วจากรอบ sync ก่อนหน้า (แค่ retry ซ้ำ ไม่ใช่ error จริง) — ถือว่าสำเร็จ
+          // ห้ามใช้ fsUpdate เขียนทับซ้ำ เพราะจะไปทับสถานะ/downloadCount ที่เดสก์ท็อปอาจแก้ไปแล้ว
+          if(!e.alreadyExists) throw e;
+        }
         saveFinishedQueue(loadFinishedQueue().filter(x=>x.id!==current.id));
         S.online=true; setSyncBadge('online');
       }catch(e){
@@ -417,9 +424,12 @@ async function trySyncFinishedDocs(){
   }finally{ finishedSyncing=false; }
   return allSynced && loadFinishedQueue().length===0;
 }
-function queueProduct(bc,name){
+function queueProduct(bc,name,price,unit){
   let q; try{ q=JSON.parse(localStorage.getItem('lpsf_pending_products')||'[]'); }catch(e){ q=[]; }
-  q.push({bc,name}); try{ localStorage.setItem('lpsf_pending_products', JSON.stringify(q)); }catch(e){}
+  const entry={bc,name};
+  if(price) entry.price=price;
+  if(unit) entry.unit=unit;
+  q.push(entry); try{ localStorage.setItem('lpsf_pending_products', JSON.stringify(q)); }catch(e){}
   tryFlushProducts();
 }
 async function tryFlushProducts(){
@@ -427,7 +437,10 @@ async function tryFlushProducts(){
   if(!q.length) return;
   const rest=[];
   for(const p of q){
-    try{ await window.fsUpsert('products',p.bc,{name:p.name, updatedAt:new Date()}); }
+    const data={name:p.name, updatedAt:new Date()};
+    if(p.price) data.price=p.price;
+    if(p.unit) data.unit=p.unit;
+    try{ await window.fsUpsert('products',p.bc,data); }
     catch(e){ rest.push(p); }
   }
   try{ localStorage.setItem('lpsf_pending_products', JSON.stringify(rest)); }catch(e){}
@@ -442,7 +455,7 @@ window.checkEmployee = async function(){
   $('loginMsg').textContent='กำลังตรวจสอบ…';
   try{
     const emp=await window.fsGet('employees', code);
-    if(!emp){ $('loginMsg').textContent='ไม่พบรหัสพนักงานนี้ในระบบ — ติดต่อผู้ดูแลให้เพิ่มรายชื่อก่อน'; return; }
+    if(!emp||emp.active===false){ $('loginMsg').textContent='ไม่พบรหัสพนักงานนี้ในระบบ — ติดต่อผู้ดูแลให้เพิ่มรายชื่อก่อน'; return; }
     S.employee={code, name:emp.name||code};
     try{
       localStorage.setItem('lpsf_employee_code', code);
@@ -721,9 +734,10 @@ function saveItem(){
       S.items[S.mode].push(o);
     }
   }
-  if(!m){ // ไม่พบบาร์โค้ดในฐานข้อมูล -> เพิ่มเข้าฐานข้อมูลสินค้ากลางทันที
-    S.master[bc]={name};
-    queueProduct(bc,name);
+  if(!m){ // ไม่พบบาร์โค้ดในฐานข้อมูล -> เพิ่มเข้าฐานข้อมูลสินค้ากลางทันที (พร้อมราคา/หน่วยถ้ามี เช่นจาก RTC)
+    const newPrice=S.mode==='RTC'?o.price:undefined, newUnit=S.mode==='RTC'?o.unit:undefined;
+    S.master[bc]=Object.assign({name}, newPrice?{price:newPrice}:{}, newUnit?{unit:newUnit}:{});
+    queueProduct(bc,name,newPrice,newUnit);
   }
   persist();
   saveDraft();

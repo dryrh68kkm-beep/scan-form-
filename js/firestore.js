@@ -72,11 +72,16 @@ function docToObj(doc) {
 }
 
 // ---------- fetch wrapper: แนบ token, retry ครั้งเดียวถ้า 401 (token หมดอายุ) ----------
+// สำคัญ: ต้องคำนวณ header ใหม่ทุกครั้ง (ไม่ mutate opts.headers เดิม) ไม่งั้นตอน retry หลัง
+// fsAutoLogin() ได้ token ใหม่แล้ว opts.headers ที่ยังค้าง Authorization ตัวเก่าจะทับ token ใหม่
+// (Object.assign ตัวหลังชนะ) ทำให้ retry ยังใช้ token หมดอายุซ้ำ แล้วพังเงียบๆ
 async function fsFetch(url, opts, retried) {
   opts = opts || {};
-  opts.headers = Object.assign({ 'Content-Type': 'application/json' },
-    fsIdToken ? { Authorization: 'Bearer ' + fsIdToken } : {}, opts.headers || {});
-  const r = await fetch(url, opts);
+  const callOpts = Object.assign({}, opts, {
+    headers: Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {},
+      fsIdToken ? { Authorization: 'Bearer ' + fsIdToken } : {})
+  });
+  const r = await fetch(url, callOpts);
   if (r.status === 401 && !retried) {
     await window.fsAutoLogin();
     return fsFetch(url, opts, true);
@@ -90,6 +95,7 @@ window.fsList = async function (col) {
   do {
     const url = fsBase() + '/' + col + '?pageSize=300' + (token ? '&pageToken=' + token : '');
     const d = await (await fsFetch(url)).json();
+    if (d.error) throw new Error(d.error.message);
     (d.documents || []).forEach(function (doc) { out.push(docToObj(doc)); });
     token = d.nextPageToken || '';
   } while (token);
@@ -100,7 +106,7 @@ window.fsGet = async function (col, id) {
   const r = await fsFetch(fsBase() + '/' + col + '/' + encodeURIComponent(id));
   if (r.status === 404) return null;
   const d = await r.json();
-  if (d.error) return null;
+  if (d.error) throw new Error(d.error.message);
   return docToObj(d);
 };
 
@@ -111,7 +117,11 @@ window.fsCreate = async function (col, id, obj) {
     method: 'POST', body: JSON.stringify({ fields: fields })
   });
   const d = await r.json();
-  if (d.error) throw new Error(d.error.message);
+  if (d.error) {
+    const err = new Error(d.error.message);
+    err.alreadyExists = r.status === 409 || /already exists/i.test(d.error.message || '');
+    throw err;
+  }
   return docToObj(d);
 };
 
@@ -150,5 +160,6 @@ window.fsQuery = async function (col, field, op, value) {
   };
   const r = await fsFetch(fsBase() + ':runQuery', { method: 'POST', body: JSON.stringify(body) });
   const rows = await r.json();
+  if (!Array.isArray(rows) && rows && rows.error) throw new Error(rows.error.message);
   return (Array.isArray(rows) ? rows : []).filter(function (x) { return x.document; }).map(function (x) { return docToObj(x.document); });
 };

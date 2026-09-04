@@ -225,27 +225,20 @@ async function saveModalMeta(){
 }
 
 /* ---------- ดาวน์โหลด Excel (ยึดฟอร์มต้นฉบับผ่าน export.js — ใช้ตัวเดียวกับมือถือ) ----------
- * ปุ่มดาวน์โหลดแยกทีละหน้า (ไม่วนลูปอัตโนมัติ) เพราะเบราว์เซอร์มักบล็อกการดาวน์โหลดไฟล์ที่ 2 เป็นต้นไป
- * เมื่อไม่ได้เกิดจากการคลิกจริงของผู้ใช้แต่ละไฟล์ */
+ * หนึ่งเอกสาร = หนึ่งไฟล์ดาวน์โหลดเสมอ (ใช้ buildExportPackage) — เอกสารที่เกิน 43/20 รายการ
+ * จะถูกห่อเป็น .zip ไฟล์เดียว (มีหลาย .xlsx ข้างในตามจำนวนหน้า) แทนการกดดาวน์โหลดทีละหน้า */
 function renderDownloadBtns(d){
-  const cap = EXPORT_CFG[d.mode].last - EXPORT_CFG[d.mode].first + 1;
-  const pages = Math.max(1, Math.ceil((d.items||[]).length / cap));
-  let h='';
-  for(let p=0;p<pages;p++){
-    h += '<button class="btn teal" onclick="downloadDoc('+p+')">ดาวน์โหลด'+
-         (pages>1?(' หน้า '+(p+1)):'')+' (.xlsx)</button>';
-  }
-  $('downloadBtns').innerHTML=h;
+  $('downloadBtns').innerHTML = '<button class="btn teal" onclick="downloadDoc()">ดาวน์โหลด (.xlsx)</button>';
 }
-async function downloadDoc(page){
+async function downloadDoc(){
   if(!D.modalDoc) return;
   const d = D.modalDoc;
   if((d.downloadCount||0) > 0){
     if(!confirm('เอกสารนี้เคยดาวน์โหลดไปแล้ว '+d.downloadCount+' ครั้ง ต้องการดาวน์โหลดซ้ำหรือไม่?')) return;
   }
   try{
-    const meta = {branch:$('mBranch').value.trim(), dept:$('mDept').value.trim(), date:d.date};
-    const {blob, filename} = await window.buildExportXlsx(d.mode, d.items||[], meta, page);
+    const meta = {branch:$('mBranch').value.trim(), dept:$('mDept').value.trim(), date:d.date, docId:d._id};
+    const {blob, filename} = await window.buildExportPackage(d.mode, d.items||[], meta);
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob); a.download=filename;
     document.body.appendChild(a); a.click();
@@ -263,7 +256,8 @@ async function downloadDoc(page){
 /* ---------- แอดมิน: พนักงาน ---------- */
 async function loadEmployees(){
   try{
-    D.employees = await window.fsList('employees');
+    const all = await window.fsList('employees');
+    D.employees = all.filter(e=>e.active!==false);
     D.employees.sort((a,b)=> String(a._id).localeCompare(String(b._id)));
     renderEmployees();
   }catch(e){ toast('โหลดรายชื่อพนักงานไม่สำเร็จ'); }
@@ -286,8 +280,11 @@ window.addEmployee = async function(){
   }catch(e){ toast('เพิ่มไม่สำเร็จ — ตรวจการเชื่อมต่อ'); }
 };
 window.removeEmployee = async function(code){
+  // ใช้ soft-delete (active:false) แทนการลบจริง — Firestore Rules ห้าม delete จาก client แล้ว
+  // (ป้องกัน Anonymous user คนใดก็ได้ลบข้อมูลทิ้งถาวร) พนักงานที่ active:false จะถูกกรองออกจาก
+  // รายการนี้และล็อกอินฝั่งมือถือไม่ได้
   if(!confirm('ลบพนักงาน '+code+' ออกจากระบบ?')) return;
-  try{ await window.fsDelete('employees', code); toast('ลบแล้ว'); loadEmployees(); }
+  try{ await window.fsUpdate('employees', code, {active:false}); toast('ลบแล้ว'); loadEmployees(); }
   catch(e){ toast('ลบไม่สำเร็จ'); }
 };
 
@@ -307,7 +304,8 @@ function parseCSV(txt){
   if(cur!==''||row.length){ row.push(cur); rows.push(row); }
   return rows.filter(r=>r.some(x=>String(x).trim()!==''));
 }
-function normBc(v){ const d=String(v==null?'':v).replace(/\D/g,''); return d.replace(/^0+(?=\d)/,''); }
+// ห้ามตัดเลข 0 นำหน้าออก — บาร์โค้ดจริง (เช่น EAN-13) มีความหมายทุกหลักรวมถึง 0 นำหน้า
+function normBc(v){ return String(v==null?'':v).replace(/\D/g,''); }
 window.uploadProducts = async function(inp){
   const f=inp.files[0]; if(!f) return;
   $('productsMsg').textContent='กำลังอ่านไฟล์…';
