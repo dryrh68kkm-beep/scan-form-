@@ -130,9 +130,9 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
       <tbody id="modalBody"></tbody>
     </table>
     <hr class="d">
-    <div style="display:flex; gap:10px; flex-wrap:wrap">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
       <button class="btn" onclick="saveModalMeta()">บันทึกการแก้ไข</button>
-      <button class="btn teal" onclick="downloadDoc()">ดาวน์โหลด Excel</button>
+      <span id="downloadBtns" style="display:flex; gap:10px; flex-wrap:wrap"></span>
       <button class="btn ghost" onclick="closeModal()">ปิด</button>
     </div>
     <p class="tag" id="downloadInfo" style="margin-top:12px"></p>
@@ -211,6 +211,7 @@ function openDoc(id){
     : '<tr><td>'+esc(it.bc)+'</td><td>'+esc(it.name)+'</td><td>'+it.code+'</td><td>'+it.qty+'</td><td>'+esc(it.reason||'')+'</td></tr>'
   ).join('');
   $('downloadInfo').textContent = 'ดาวน์โหลดแล้ว '+(d.downloadCount||0)+' ครั้ง';
+  renderDownloadBtns(d);
   $('docModal').classList.add('show');
 }
 function closeModal(){ $('docModal').classList.remove('show'); D.modalDoc=null; }
@@ -223,8 +224,20 @@ async function saveModalMeta(){
   }catch(e){ toast('บันทึกไม่สำเร็จ — ตรวจการเชื่อมต่อ'); }
 }
 
-/* ---------- ดาวน์โหลด Excel (ยึดฟอร์มต้นฉบับผ่าน export.js — ใช้ตัวเดียวกับมือถือ) ---------- */
-async function downloadDoc(){
+/* ---------- ดาวน์โหลด Excel (ยึดฟอร์มต้นฉบับผ่าน export.js — ใช้ตัวเดียวกับมือถือ) ----------
+ * ปุ่มดาวน์โหลดแยกทีละหน้า (ไม่วนลูปอัตโนมัติ) เพราะเบราว์เซอร์มักบล็อกการดาวน์โหลดไฟล์ที่ 2 เป็นต้นไป
+ * เมื่อไม่ได้เกิดจากการคลิกจริงของผู้ใช้แต่ละไฟล์ */
+function renderDownloadBtns(d){
+  const cap = EXPORT_CFG[d.mode].last - EXPORT_CFG[d.mode].first + 1;
+  const pages = Math.max(1, Math.ceil((d.items||[]).length / cap));
+  let h='';
+  for(let p=0;p<pages;p++){
+    h += '<button class="btn teal" onclick="downloadDoc('+p+')">ดาวน์โหลด'+
+         (pages>1?(' หน้า '+(p+1)):'')+' (.xlsx)</button>';
+  }
+  $('downloadBtns').innerHTML=h;
+}
+async function downloadDoc(page){
   if(!D.modalDoc) return;
   const d = D.modalDoc;
   if((d.downloadCount||0) > 0){
@@ -232,15 +245,12 @@ async function downloadDoc(){
   }
   try{
     const meta = {branch:$('mBranch').value.trim(), dept:$('mDept').value.trim(), date:d.date};
-    const cap = d.mode==='RTC' ? 20 : 43;
-    const pages = Math.max(1, Math.ceil((d.items||[]).length / cap));
-    for(let p=0;p<pages;p++){
-      const {blob, filename} = await window.buildExportXlsx(d.mode, d.items||[], meta, p);
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob); a.download=filename;
-      document.body.appendChild(a); a.click();
-      setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
-    }
+    const {blob, filename} = await window.buildExportXlsx(d.mode, d.items||[], meta, page);
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+
     const newCount = (d.downloadCount||0)+1;
     await window.fsUpdate('documents', d._id, {status:'printed', downloadCount:newCount, printedAt:new Date()});
     toast('ดาวน์โหลดแล้ว (ครั้งที่ '+newCount+') — เปลี่ยนสถานะเป็นพิมพ์แล้ว');
