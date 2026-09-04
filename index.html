@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ฟอร์มสแกนสต๊อก/ตรวจนับ LP — Big C Sainoi 11252</title>
+<style>
+  :root{
+    --navy:#0f2a4a;
+    --navy-2:#16406e;
+    --blue:#1f6feb;
+    --teal:#0e9488;
+    --bg:#eef2f7;
+    --card:#ffffff;
+    --line:#dbe3ee;
+    --text:#1a2536;
+    --muted:#5c6b82;
+    --danger:#c0392b;
+    --danger-bg:#fdecea;
+    --ok:#1f8a53;
+    --ok-bg:#e8f7ef;
+    --warn:#b8860b;
+    --warn-bg:#fff6e0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Sarabun","Noto Sans Thai",sans-serif;
+    padding-bottom:76px;
+  }
+  header.top{
+    background:linear-gradient(135deg,var(--navy),var(--navy-2));
+    color:#fff; padding:14px 16px 18px;
+    position:sticky; top:0; z-index:20;
+    box-shadow:0 2px 10px rgba(15,42,74,.25);
+  }
+  header.top h1{margin:0; font-size:16px; font-weight:700;}
+  header.top p{margin:4px 0 0; font-size:12px; opacity:.85;}
+  .store-meta{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;}
+  .store-meta input, .store-meta select{
+    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.3);
+    color:#fff; border-radius:8px; padding:6px 8px; font-size:12px; flex:1; min-width:100px;
+  }
+  .store-meta input::placeholder{color:rgba(255,255,255,.7);}
+  .store-meta select option{color:#000;}
+
+  main{padding:12px; max-width:720px; margin:0 auto;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(15,42,74,.06);
+  }
+  .card h2{margin:0 0 10px; font-size:14px; color:var(--navy-2); display:flex; align-items:center; gap:6px;}
+  .card h2 .badge{
+    background:var(--teal); color:#fff; font-size:10px; padding:2px 7px; border-radius:20px; font-weight:600;
+  }
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  label{display:block; font-size:12px; color:var(--muted); margin-bottom:4px; font-weight:600;}
+  .field{margin-bottom:10px;}
+  input[type=text], input[type=number], select, textarea{
+    width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:9px;
+    font-size:14px; background:#fbfcfe; color:var(--text);
+  }
+  textarea{resize:vertical; min-height:44px;}
+  .scanrow{display:flex; gap:8px;}
+  .scanrow input{flex:1;}
+  button{
+    cursor:pointer; border:none; border-radius:9px; font-weight:700; font-size:13px;
+    padding:10px 14px; transition:opacity .15s;
+  }
+  button:active{opacity:.75;}
+  .btn-primary{background:var(--blue); color:#fff;}
+  .btn-teal{background:var(--teal); color:#fff;}
+  .btn-ghost{background:#eef2f7; color:var(--navy-2); border:1px solid var(--line);}
+  .btn-danger{background:var(--danger-bg); color:var(--danger); border:1px solid #f3c9c4;}
+  .btn-block{width:100%;}
+  .btn-icon{padding:9px 12px;}
+  .actions{display:flex; gap:8px; margin-top:6px;}
+
+  .chiprow{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
+  .chip{
+    border:1px solid var(--line); background:#f4f7fb; color:var(--navy-2);
+    padding:6px 10px; border-radius:20px; font-size:12px; cursor:pointer; user-select:none;
+  }
+  .chip.on{background:var(--navy-2); color:#fff; border-color:var(--navy-2);}
+
+  table{width:100%; border-collapse:collapse; font-size:12px;}
+  th,td{padding:6px 6px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top;}
+  th{color:var(--muted); font-weight:700; white-space:nowrap;}
+  tr:last-child td{border-bottom:none;}
+  .tbl-wrap{overflow-x:auto;}
+  .row-del{color:var(--danger); font-size:11px; cursor:pointer; font-weight:700;}
+
+  .tag{display:inline-block; font-size:10px; padding:2px 7px; border-radius:20px; font-weight:700;}
+  .tag-ok{background:var(--ok-bg); color:var(--ok);}
+  .tag-warn{background:var(--warn-bg); color:var(--warn);}
+  .tag-danger{background:var(--danger-bg); color:var(--danger);}
+  .tag-muted{background:#eef2f7; color:var(--muted);}
+
+  .diffbox{
+    text-align:center; padding:16px; border-radius:12px; margin-bottom:12px;
+    border:1px solid var(--line);
+  }
+  .diffbox .num{font-size:26px; font-weight:800;}
+  .diffbox.ok{background:var(--ok-bg); color:var(--ok);}
+  .diffbox.danger{background:var(--danger-bg); color:var(--danger);}
+
+  .search-box{margin-bottom:10px;}
+  .code-item{
+    border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px;
+    background:#fbfcfe;
+  }
+  .code-item .code-head{display:flex; align-items:center; gap:8px; margin-bottom:4px;}
+  .code-head .code-no{
+    background:var(--navy-2); color:#fff; font-weight:800; font-size:12px;
+    padding:3px 9px; border-radius:8px; min-width:28px; text-align:center;
+  }
+  .code-head .code-name{font-weight:700; font-size:13px;}
+  .code-item .code-desc{font-size:12.5px; color:var(--muted); line-height:1.5;}
+
+  nav.bottom{
+    position:fixed; bottom:0; left:0; right:0; background:#fff;
+    border-top:1px solid var(--line); display:flex; z-index:30;
+    box-shadow:0 -2px 10px rgba(15,42,74,.08);
+  }
+  nav.bottom button{
+    flex:1; background:none; border-radius:0; padding:10px 2px 8px;
+    color:var(--muted); font-size:10.5px; display:flex; flex-direction:column; align-items:center; gap:2px;
+  }
+  nav.bottom button .ic{font-size:18px;}
+  nav.bottom button.active{color:var(--blue); font-weight:800;}
+
+  .hint{font-size:11px; color:var(--muted); margin-top:4px; line-height:1.5;}
+  .empty{text-align:center; color:var(--muted); font-size:12px; padding:16px 0;}
+  #cameraWrap{display:none; margin-bottom:10px;}
+  #cameraWrap video{width:100%; border-radius:10px; background:#000;}
+  .toast{
+    position:fixed; bottom:86px; left:50%; transform:translateX(-50%);
+    background:var(--navy); color:#fff; padding:9px 16px; border-radius:20px;
+    font-size:12px; opacity:0; pointer-events:none; transition:opacity .2s; z-index:50;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>📋 ฟอร์มสแกนสต๊อก/ตรวจนับ LP</h1>
+  <p>Big C Hyper ไทรน้อย · Store 11252 · Loss Prevention</p>
+  <div class="store-meta">
+    <input type="text" id="metaCounter" placeholder="ชื่อผู้ตรวจนับ / LP">
+    <select id="metaFormat">
+      <option value="hyper">Hyper</option>
+      <option value="market">Market</option>
+      <option value="foodplace">Food Place</option>
+    </select>
+    <input type="date" id="metaDate">
+  </div>
+</header>
+
+<main>
+
+  <!-- PANEL 1: SCAN / COUNT -->
+  <section class="panel active" id="panel-scan">
+    <div class="card">
+      <h2>📷 นับสต็อก / Scan <span class="badge">Day 1–2</span></h2>
+      <div class="field">
+        <label>วิธีนับ</label>
+        <div class="chiprow" id="methodChips">
+          <div class="chip on" data-val="byCount">by Count (Post It)</div>
+          <div class="chip" data-val="defaultByOne">Default by One</div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Fixture No.</label>
+          <input type="text" id="scanFixture" placeholder="เช่น A-210">
+        </div>
+        <div class="field">
+          <label>สถานะรายการ</label>
+          <select id="scanStatus">
+            <option value="normal">ปกติ</option>
+            <option value="notcount">Not Count (มีของแต่ยังไม่นับ)</option>
+            <option value="notfound">Not Found (F.. ไม่มีในระบบ)</option>
+            <option value="stray">สินค้าพลัดหลง (Fixture 99990–99998)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>บาร์โค้ด</label>
+        <div class="scanrow">
+          <input type="text" id="scanBarcode" placeholder="สแกนหรือพิมพ์บาร์โค้ด" inputmode="numeric">
+          <button class="btn-teal btn-icon" id="btnCamera" type="button">📷</button>
+        </div>
+        <div id="cameraWrap">
+          <video id="cameraVideo" playsinline muted></video>
+          <div class="hint">เล็งกล้องไปที่บาร์โค้ด — รองรับเฉพาะเบราว์เซอร์ที่มี BarcodeDetector (Chrome/Edge Android)</div>
+          <button class="btn-ghost btn-block" id="btnCameraStop" type="button" style="margin-top:6px;">ปิดกล้อง</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>ชื่อสินค้า</label>
+        <input type="text" id="scanItemName" placeholder="ชื่อสินค้า (ถ้าทราบ)">
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>จำนวนในระบบ (SOH)</label>
+          <input type="number" id="scanSysQty" placeholder="0" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>จำนวนนับจริง</label>
+          <input type="number" id="scanCountQty" placeholder="0" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field">
+        <label>ราคาทุนต่อหน่วย (ถ้าทราบ — ใช้คำนวณมูลค่าผลต่าง)</label>
+        <input type="number" id="scanUnitCost" placeholder="0.00" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>หมายเหตุ</label>
+        <textarea id="scanNote" placeholder="เช่น กล่องเปล่า / คละ Size / นับสลับบาร์โค้ด ฯลฯ"></textarea>
+      </div>
+      <button class="btn-primary btn-block" id="btnAddScan" type="button">＋ บันทึกรายการ</button>
+      <div class="hint">ห้ามแกะสินค้าออกจากกล่องมา Scan · Not Count เขียน Barcode+จำนวนเพิ่มใน Report · Not Found ทำสัญลักษณ์ "F.."</div>
+    </div>
+
+    <div class="card">
+      <h2>รายการที่นับวันนี้ <span class="badge" id="scanCountBadge">0</span></h2>
+      <div class="tbl-wrap">
+        <table id="scanTable"><thead>
+          <tr><th>Fixture</th><th>Barcode</th><th>สินค้า</th><th>SOH</th><th>นับได้</th><th>Diff</th><th>สถานะ</th><th></th></tr>
+        </thead><tbody></tbody></table>
+      </div>
+      <div class="empty" id="scanEmpty">ยังไม่มีรายการ</div>
+    </div>
+  </section>
+
+  <!-- PANEL 2: LP FOCUS CHECK -->
+  <section class="panel" id="panel-lp">
+    <div class="card">
+      <h2>🔍 LP Focus Check <span class="badge">Verify</span></h2>
+      <div class="hint" style="margin-bottom:10px;">
+        บทบาท LP: ตรวจสินค้า Focus เทียบของจริงกับ Stock Take Editing Report แล้วลงชื่อท้าย Report — เขียนคำว่า
+        <b>"LP"</b> ต่อท้ายชื่อเสมอ · Stock Room ต้อง Verify 100% ทุก Fixture Number
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Fixture No.</label>
+          <input type="text" id="lpFixture" placeholder="เช่น A-210">
+        </div>
+        <div class="field">
+          <label>บาร์โค้ด</label>
+          <input type="text" id="lpBarcode" placeholder="บาร์โค้ด" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field">
+        <label>ชื่อสินค้า</label>
+        <input type="text" id="lpItemName" placeholder="ชื่อสินค้า">
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>จำนวนใน Stock Take Editing Report</label>
+          <input type="number" id="lpReportQty" placeholder="0" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>จำนวนที่ LP ตรวจนับจริง</label>
+          <input type="number" id="lpPhysicalQty" placeholder="0" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field">
+        <label>ผลตรวจ</label>
+        <div class="chiprow" id="lpResultChips">
+          <div class="chip on" data-val="match">ถูกต้องตรงกัน</div>
+          <div class="chip" data-val="mismatch">ไม่ตรง / ต้องแก้ Corrected</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>หมายเหตุ (เช่น พบสินค้าหมดอายุถูกนับเข้า, กล่องเปล่า, Serial no. ไม่ตรง)</label>
+        <textarea id="lpNote"></textarea>
+      </div>
+      <div class="field">
+        <label>ผู้ตรวจ (LP)</label>
+        <input type="text" id="lpSigner" placeholder="ชื่อ — ระบบจะเติมคำว่า LP ต่อท้ายให้อัตโนมัติ">
+      </div>
+      <button class="btn-primary btn-block" id="btnAddLp" type="button">＋ บันทึกผลตรวจ LP</button>
+    </div>
+
+    <div class="card">
+      <h2>ผลตรวจ LP Focus <span class="badge" id="lpCountBadge">0</span></h2>
+      <div class="tbl-wrap">
+        <table id="lpTable"><thead>
+          <tr><th>Fixture</th><th>สินค้า</th><th>Report</th><th>จริง</th><th>ผล</th><th>ลงชื่อ</th><th></th></tr>
+        </thead><tbody></tbody></table>
+      </div>
+      <div class="empty" id="lpEmpty">ยังไม่มีรายการ</div>
+    </div>
+  </section>
+
+  <!-- PANEL 3: NEGATIVE STOCK -->
+  <section class="panel" id="panel-neg">
+    <div class="card">
+      <h2>⚠️ ตรวจสอบ Negative Stock</h2>
+      <div class="hint" style="margin-bottom:10px;">
+        LP ต้องตรวจ Negative ก่อนปิดงาน Step 1 · เฝ้าระวังการบวกสต็อกโดยไม่มีสินค้าจริง (ทุจริตร้ายแรง) ·
+        Reconcile อนุมัติเฉพาะความผิดที่เกิดจาก Corrector เท่านั้น
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>บาร์โค้ด</label>
+          <input type="text" id="negBarcode" placeholder="บาร์โค้ด" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>จำนวนติดลบ</label>
+          <input type="number" id="negQty" placeholder="0" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field">
+        <label>ชื่อสินค้า</label>
+        <input type="text" id="negItemName" placeholder="ชื่อสินค้า">
+      </div>
+      <div class="field">
+        <label>สาเหตุ (Reference: Technical File + Reconcile)</label>
+        <select id="negReason">
+          <option value="presale">ขายสินค้าล่วงหน้า — แก้เมื่อบันทึกรับสินค้า</option>
+          <option value="code9">แตก / รวมแพ็ค — Code 9</option>
+          <option value="code11">ลืมบันทึกรับสินค้า — Code 11 (Non-Receiving Article)</option>
+          <option value="code10">บันทึกรับผิดจำนวน — Code 10 (Incorrect Receiving)</option>
+          <option value="code8">รับ/ขายสินค้าผิด Barcode — Code 8</option>
+          <option value="code12">ออกใบส่งคืน (RTV) ซ้ำซ้อน — Code 12</option>
+          <option value="freebie">นำสินค้าของแถมมาขาย — ประสาน GL ปรับต้นทุนเป็นศูนย์</option>
+          <option value="reconA">Reconcile: Corrected ผิดรายการ (A)</option>
+          <option value="reconB">Reconcile: Corrected ผิดจำนวน (B)</option>
+          <option value="reconC">Reconcile: Corrected ซ้ำ (C)</option>
+          <option value="other">อื่นๆ — ระบุในหมายเหตุ</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>สถานะการตรวจสอบ</label>
+        <div class="chiprow" id="negStatusChips">
+          <div class="chip on" data-val="pending">รอสอบสวน</div>
+          <div class="chip" data-val="resolved">แก้ไขแล้ว</div>
+          <div class="chip" data-val="escalate">ส่งต่อ GAD_HO-Stock Take</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>หมายเหตุ / แนวทางแก้ไข</label>
+        <textarea id="negNote"></textarea>
+      </div>
+      <button class="btn-primary btn-block" id="btnAddNeg" type="button">＋ บันทึก Negative Stock</button>
+    </div>
+
+    <div class="card">
+      <h2>รายการ Negative Stock <span class="badge" id="negCountBadge">0</span></h2>
+      <div class="tbl-wrap">
+        <table id="negTable"><thead>
+          <tr><th>Barcode</th><th>สินค้า</th><th>จำนวน</th><th>สาเหตุ</th><th>สถานะ</th><th></th></tr>
+        </thead><tbody></tbody></table>
+      </div>
+      <div class="empty" id="negEmpty">ยังไม่มีรายการ</div>
+    </div>
+  </section>
+
+  <!-- PANEL 4: DIFF & EXPORT -->
+  <section class="panel" id="panel-diff">
+    <div class="card">
+      <h2>📊 เกณฑ์ Diff ตามขั้นตอนปิดงาน</h2>
+      <div class="field">
+        <label>ขั้นตอนปัจจุบัน</label>
+        <select id="diffStage">
+          <option value="beforeClose">Reconcile Before Close (04:00–07:00)</option>
+          <option value="beforeApply">Reconcile Before Apply (08:00–12:00)</option>
+          <option value="cycle">Cycle Count (รายรอบ)</option>
+          <option value="annual">ตรวจนับประจำปี (Annual)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>มูลค่าผลต่าง (Diff) ที่พบ — บาท (ใส่ค่าบวก)</label>
+        <input type="number" id="diffValue" placeholder="0" inputmode="decimal">
+      </div>
+      <button class="btn-teal btn-block" id="btnCheckDiff" type="button">ตรวจสอบเกณฑ์</button>
+      <div id="diffResult" style="margin-top:12px;"></div>
+      <div class="hint">
+        Hyper: Before Close ±5,000 / Before Apply ±30,000 · Market &amp; Food Place: Before Close ±3,000 / Before Apply ±10,000<br>
+        Cycle count: ±1,000/article · ตรวจนับประจำปี: ±10,000/article (Hyper/Market)<br>
+        ⚠️ เอกสารระบุช่วงเวลา Reconcile Before Apply ไม่ตรงกัน (08:00–12:00 vs 07:00–11:00) — ยืนยันกับ GAD_HO-Stock Take ก่อนวันปิดงานจริง
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>สรุปข้อมูลวันนี้</h2>
+      <table>
+        <tr><td>รายการนับสต็อก (Scan)</td><td id="sumScan">0</td></tr>
+        <tr><td>LP Focus Check</td><td id="sumLp">0</td></tr>
+        <tr><td>LP Focus — ไม่ตรง (ต้อง Corrected)</td><td id="sumLpMismatch">0</td></tr>
+        <tr><td>Negative Stock</td><td id="sumNeg">0</td></tr>
+        <tr><td>Not Count / Not Found</td><td id="sumNcNf">0</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>ส่งออกข้อมูล</h2>
+      <div class="actions">
+        <button class="btn-primary btn-block" id="btnExportCsv" type="button">⬇️ Export CSV ทั้งหมด</button>
+      </div>
+      <div class="actions">
+        <button class="btn-danger btn-block" id="btnClearAll" type="button">🗑️ ล้างข้อมูลทั้งหมด</button>
+      </div>
+      <div class="hint">ข้อมูลถูกเก็บไว้ในเบราว์เซอร์ (localStorage) ของเครื่องนี้เท่านั้น — Export เป็น CSV เพื่อส่งต่อหรือแนบเอกสาร</div>
+    </div>
+  </section>
+
+  <!-- PANEL 5: ADJUST CODE REFERENCE -->
+  <section class="panel" id="panel-codes">
+    <div class="card">
+      <h2>📖 Adjust Code Quick Reference</h2>
+      <div class="search-box">
+        <input type="text" id="codeSearch" placeholder="ค้นหา code หรือคำ เช่น 21, หมดอายุ, RTC">
+      </div>
+      <div id="codeList"></div>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<nav class="bottom">
+  <button class="active" data-panel="panel-scan"><span class="ic">📷</span>สแกนนับ</button>
+  <button data-panel="panel-lp"><span class="ic">🔍</span>LP Focus</button>
+  <button data-panel="panel-neg"><span class="ic">⚠️</span>Negative</button>
+  <button data-panel="panel-diff"><span class="ic">📊</span>Diff/Export</button>
+  <button data-panel="panel-codes"><span class="ic">📖</span>Adjust Code</button>
+</nav>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- storage helpers ----------
+  var STORE_KEYS = {scan:"lp_scan_records", lp:"lp_focus_records", neg:"lp_negative_records", meta:"lp_form_meta"};
+
+  function load(key){
+    try{ var v = localStorage.getItem(key); return v ? JSON.parse(v) : []; }
+    catch(e){ return []; }
+  }
+  function save(key, arr){
+    try{ localStorage.setItem(key, JSON.stringify(arr)); }catch(e){}
+  }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+  var scanRecords = load(STORE_KEYS.scan);
+  var lpRecords = load(STORE_KEYS.lp);
+  var negRecords = load(STORE_KEYS.neg);
+
+  // ---------- meta (store header) ----------
+  var meta = (function(){ try{ return JSON.parse(localStorage.getItem(STORE_KEYS.meta)||"{}"); }catch(e){return {};} })();
+  var elCounter = document.getElementById("metaCounter");
+  var elFormat = document.getElementById("metaFormat");
+  var elDate = document.getElementById("metaDate");
+  elCounter.value = meta.counter || "";
+  elFormat.value = meta.format || "hyper";
+  elDate.value = meta.date || new Date().toISOString().slice(0,10);
+  function persistMeta(){
+    localStorage.setItem(STORE_KEYS.meta, JSON.stringify({
+      counter: elCounter.value, format: elFormat.value, date: elDate.value
+    }));
+  }
+  [elCounter, elFormat, elDate].forEach(function(el){ el.addEventListener("change", persistMeta); });
+
+  // ---------- toast ----------
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 1800);
+  }
+
+  // ---------- bottom nav ----------
+  var navButtons = document.querySelectorAll("nav.bottom button");
+  navButtons.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      navButtons.forEach(function(b){ b.classList.remove("active"); });
+      btn.classList.add("active");
+      document.querySelectorAll(".panel").forEach(function(p){ p.classList.remove("active"); });
+      document.getElementById(btn.dataset.panel).classList.add("active");
+    });
+  });
+
+  // ---------- chip groups ----------
+  function wireChips(containerId){
+    var container = document.getElementById(containerId);
+    var chips = container.querySelectorAll(".chip");
+    chips.forEach(function(c){
+      c.addEventListener("click", function(){
+        chips.forEach(function(x){ x.classList.remove("on"); });
+        c.classList.add("on");
+      });
+    });
+    return function(){
+      var on = container.querySelector(".chip.on");
+      return on ? on.dataset.val : null;
+    };
+  }
+  var getMethod = wireChips("methodChips");
+  var getLpResult = wireChips("lpResultChips");
+  var getNegStatus = wireChips("negStatusChips");
+
+  // ---------- camera barcode scan ----------
+  var cameraWrap = document.getElementById("cameraWrap");
+  var cameraVideo = document.getElementById("cameraVideo");
+  var btnCamera = document.getElementById("btnCamera");
+  var btnCameraStop = document.getElementById("btnCameraStop");
+  var mediaStream = null;
+  var scanLoopId = null;
+
+  function stopCamera(){
+    if(scanLoopId) cancelAnimationFrame(scanLoopId);
+    scanLoopId = null;
+    if(mediaStream){
+      mediaStream.getTracks().forEach(function(t){ t.stop(); });
+      mediaStream = null;
+    }
+    cameraWrap.style.display = "none";
+  }
+
+  btnCamera.addEventListener("click", function(){
+    if(!("BarcodeDetector" in window)){
+      toast("อุปกรณ์นี้ไม่รองรับสแกนกล้อง — กรุณาพิมพ์บาร์โค้ดเอง");
+      return;
+    }
+    cameraWrap.style.display = "block";
+    navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}})
+      .then(function(stream){
+        mediaStream = stream;
+        cameraVideo.srcObject = stream;
+        cameraVideo.play();
+        var detector = new window.BarcodeDetector({formats:["ean_13","ean_8","code_128","upc_a","upc_e","code_39"]});
+        function tick(){
+          if(!mediaStream) return;
+          detector.detect(cameraVideo).then(function(codes){
+            if(codes && codes.length){
+              document.getElementById("scanBarcode").value = codes[0].rawValue;
+              toast("สแกนได้: " + codes[0].rawValue);
+              stopCamera();
+            } else {
+              scanLoopId = requestAnimationFrame(tick);
+            }
+          }).catch(function(){
+            scanLoopId = requestAnimationFrame(tick);
+          });
+        }
+        scanLoopId = requestAnimationFrame(tick);
+      })
+      .catch(function(){
+        toast("ไม่สามารถเปิดกล้องได้ — ตรวจสอบสิทธิ์การเข้าถึงกล้อง");
+        cameraWrap.style.display = "none";
+      });
+  });
+  btnCameraStop.addEventListener("click", stopCamera);
+
+  // ---------- SCAN panel ----------
+  var scanTbody = document.querySelector("#scanTable tbody");
+  function renderScan(){
+    scanTbody.innerHTML = "";
+    document.getElementById("scanCountBadge").textContent = scanRecords.length;
+    document.getElementById("scanEmpty").style.display = scanRecords.length ? "none" : "block";
+    scanRecords.slice().reverse().forEach(function(r){
+      var tr = document.createElement("tr");
+      var diff = (Number(r.countQty)||0) - (Number(r.sysQty)||0);
+      var statusTag = {normal:"tag-ok", notcount:"tag-warn", notfound:"tag-danger", stray:"tag-muted"}[r.status] || "tag-muted";
+      var statusLabel = {normal:"ปกติ", notcount:"Not Count", notfound:"Not Found", stray:"พลัดหลง"}[r.status] || r.status;
+      tr.innerHTML =
+        "<td>"+esc(r.fixture)+"</td>"+
+        "<td>"+esc(r.barcode)+"</td>"+
+        "<td>"+esc(r.itemName)+"</td>"+
+        "<td>"+esc(r.sysQty)+"</td>"+
+        "<td>"+esc(r.countQty)+"</td>"+
+        "<td>"+(diff>0?"+":"")+diff+"</td>"+
+        "<td><span class='tag "+statusTag+"'>"+statusLabel+"</span></td>"+
+        "<td><span class='row-del' data-id='"+r.id+"'>ลบ</span></td>";
+      scanTbody.appendChild(tr);
+    });
+  }
+  scanTbody.addEventListener("click", function(e){
+    if(e.target.classList.contains("row-del")){
+      scanRecords = scanRecords.filter(function(r){ return r.id !== e.target.dataset.id; });
+      save(STORE_KEYS.scan, scanRecords);
+      renderScan(); refreshSummary();
+    }
+  });
+
+  document.getElementById("btnAddScan").addEventListener("click", function(){
+    var barcode = document.getElementById("scanBarcode").value.trim();
+    var fixture = document.getElementById("scanFixture").value.trim();
+    if(!barcode && !fixture){ toast("กรอกอย่างน้อย Fixture หรือ Barcode"); return; }
+    var rec = {
+      id: uid(),
+      method: getMethod(),
+      fixture: fixture,
+      status: document.getElementById("scanStatus").value,
+      barcode: barcode,
+      itemName: document.getElementById("scanItemName").value.trim(),
+      sysQty: document.getElementById("scanSysQty").value,
+      countQty: document.getElementById("scanCountQty").value,
+      unitCost: document.getElementById("scanUnitCost").value,
+      note: document.getElementById("scanNote").value.trim(),
+      ts: new Date().toISOString()
+    };
+    scanRecords.push(rec);
+    save(STORE_KEYS.scan, scanRecords);
+    ["scanFixture","scanBarcode","scanItemName","scanSysQty","scanCountQty","scanUnitCost","scanNote"].forEach(function(id){
+      document.getElementById(id).value = "";
+    });
+    renderScan(); refreshSummary();
+    toast("บันทึกแล้ว");
+  });
+
+  // ---------- LP FOCUS panel ----------
+  var lpTbody = document.querySelector("#lpTable tbody");
+  function renderLp(){
+    lpTbody.innerHTML = "";
+    document.getElementById("lpCountBadge").textContent = lpRecords.length;
+    document.getElementById("lpEmpty").style.display = lpRecords.length ? "none" : "block";
+    lpRecords.slice().reverse().forEach(function(r){
+      var tr = document.createElement("tr");
+      var tag = r.result === "match" ? "tag-ok" : "tag-danger";
+      var label = r.result === "match" ? "ตรงกัน" : "ไม่ตรง";
+      tr.innerHTML =
+        "<td>"+esc(r.fixture)+"</td>"+
+        "<td>"+esc(r.itemName)+"</td>"+
+        "<td>"+esc(r.reportQty)+"</td>"+
+        "<td>"+esc(r.physicalQty)+"</td>"+
+        "<td><span class='tag "+tag+"'>"+label+"</span></td>"+
+        "<td>"+esc(r.signer)+"</td>"+
+        "<td><span class='row-del' data-id='"+r.id+"'>ลบ</span></td>";
+      lpTbody.appendChild(tr);
+    });
+  }
+  lpTbody.addEventListener("click", function(e){
+    if(e.target.classList.contains("row-del")){
+      lpRecords = lpRecords.filter(function(r){ return r.id !== e.target.dataset.id; });
+      save(STORE_KEYS.lp, lpRecords);
+      renderLp(); refreshSummary();
+    }
+  });
+  document.getElementById("btnAddLp").addEventListener("click", function(){
+    var signerRaw = document.getElementById("lpSigner").value.trim();
+    if(!signerRaw){ toast("กรุณาระบุชื่อผู้ตรวจ LP"); return; }
+    var signer = /\bLP\b/i.test(signerRaw) ? signerRaw : (signerRaw + " LP");
+    var rec = {
+      id: uid(),
+      fixture: document.getElementById("lpFixture").value.trim(),
+      barcode: document.getElementById("lpBarcode").value.trim(),
+      itemName: document.getElementById("lpItemName").value.trim(),
+      reportQty: document.getElementById("lpReportQty").value,
+      physicalQty: document.getElementById("lpPhysicalQty").value,
+      result: getLpResult(),
+      note: document.getElementById("lpNote").value.trim(),
+      signer: signer,
+      ts: new Date().toISOString()
+    };
+    lpRecords.push(rec);
+    save(STORE_KEYS.lp, lpRecords);
+    ["lpFixture","lpBarcode","lpItemName","lpReportQty","lpPhysicalQty","lpNote","lpSigner"].forEach(function(id){
+      document.getElementById(id).value = "";
+    });
+    renderLp(); refreshSummary();
+    toast("บันทึกผลตรวจ LP แล้ว");
+  });
+
+  // ---------- NEGATIVE panel ----------
+  var negTbody = document.querySelector("#negTable tbody");
+  var negReasonLabels = {
+    presale:"ขายสินค้าล่วงหน้า", code9:"Code 9 แตก/รวมแพ็ค", code11:"Code 11 ลืมบันทึกรับ",
+    code10:"Code 10 บันทึกรับผิดจำนวน", code8:"Code 8 ผิด Barcode", code12:"Code 12 RTV ซ้ำซ้อน",
+    freebie:"ของแถมนำมาขาย", reconA:"Reconcile A: Corrected ผิดรายการ", reconB:"Reconcile B: ผิดจำนวน",
+    reconC:"Reconcile C: Corrected ซ้ำ", other:"อื่นๆ"
+  };
+  function renderNeg(){
+    negTbody.innerHTML = "";
+    document.getElementById("negCountBadge").textContent = negRecords.length;
+    document.getElementById("negEmpty").style.display = negRecords.length ? "none" : "block";
+    negRecords.slice().reverse().forEach(function(r){
+      var tr = document.createElement("tr");
+      var tag = {pending:"tag-warn", resolved:"tag-ok", escalate:"tag-danger"}[r.status] || "tag-muted";
+      var label = {pending:"รอสอบสวน", resolved:"แก้ไขแล้ว", escalate:"ส่งต่อ HO"}[r.status] || r.status;
+      tr.innerHTML =
+        "<td>"+esc(r.barcode)+"</td>"+
+        "<td>"+esc(r.itemName)+"</td>"+
+        "<td>"+esc(r.qty)+"</td>"+
+        "<td>"+esc(negReasonLabels[r.reason]||r.reason)+"</td>"+
+        "<td><span class='tag "+tag+"'>"+label+"</span></td>"+
+        "<td><span class='row-del' data-id='"+r.id+"'>ลบ</span></td>";
+      negTbody.appendChild(tr);
+    });
+  }
+  negTbody.addEventListener("click", function(e){
+    if(e.target.classList.contains("row-del")){
+      negRecords = negRecords.filter(function(r){ return r.id !== e.target.dataset.id; });
+      save(STORE_KEYS.neg, negRecords);
+      renderNeg(); refreshSummary();
+    }
+  });
+  document.getElementById("btnAddNeg").addEventListener("click", function(){
+    var barcode = document.getElementById("negBarcode").value.trim();
+    if(!barcode){ toast("กรุณากรอกบาร์โค้ด"); return; }
+    var rec = {
+      id: uid(),
+      barcode: barcode,
+      itemName: document.getElementById("negItemName").value.trim(),
+      qty: document.getElementById("negQty").value,
+      reason: document.getElementById("negReason").value,
+      status: getNegStatus(),
+      note: document.getElementById("negNote").value.trim(),
+      ts: new Date().toISOString()
+    };
+    negRecords.push(rec);
+    save(STORE_KEYS.neg, negRecords);
+    ["negBarcode","negItemName","negQty","negNote"].forEach(function(id){
+      document.getElementById(id).value = "";
+    });
+    renderNeg(); refreshSummary();
+    toast("บันทึก Negative Stock แล้ว");
+  });
+
+  // ---------- DIFF check ----------
+  var thresholds = {
+    hyper:{beforeClose:5000, beforeApply:30000},
+    market:{beforeClose:3000, beforeApply:10000},
+    foodplace:{beforeClose:3000, beforeApply:10000}
+  };
+  document.getElementById("btnCheckDiff").addEventListener("click", function(){
+    var stage = document.getElementById("diffStage").value;
+    var val = Math.abs(Number(document.getElementById("diffValue").value) || 0);
+    var format = elFormat.value;
+    var limit, label;
+    if(stage === "beforeClose"){ limit = thresholds[format].beforeClose; label = "Diff Before Close Stock Take"; }
+    else if(stage === "beforeApply"){ limit = thresholds[format].beforeApply; label = "Diff Before Apply Stock Take"; }
+    else if(stage === "cycle"){ limit = 1000; label = "Cycle Count (ต่อ article)"; }
+    else { limit = 10000; label = "ตรวจนับประจำปี (ต่อ article, Hyper/Market)"; }
+
+    var box = document.getElementById("diffResult");
+    var within = val <= limit;
+    box.innerHTML =
+      "<div class='diffbox "+(within?"ok":"danger")+"'>"+
+        "<div>"+label+" — เกณฑ์ ±"+limit.toLocaleString()+" บาท</div>"+
+        "<div class='num'>"+val.toLocaleString()+" บาท</div>"+
+        "<div>"+(within ? "✅ อยู่ในเกณฑ์" : "🚫 เกินเกณฑ์ — ต้องตรวจสอบและมีเอกสารประกอบก่อนส่ง HO")+"</div>"+
+      "</div>";
+  });
+
+  // ---------- summary ----------
+  function refreshSummary(){
+    document.getElementById("sumScan").textContent = scanRecords.length;
+    document.getElementById("sumLp").textContent = lpRecords.length;
+    document.getElementById("sumLpMismatch").textContent = lpRecords.filter(function(r){return r.result==="mismatch";}).length;
+    document.getElementById("sumNeg").textContent = negRecords.length;
+    document.getElementById("sumNcNf").textContent = scanRecords.filter(function(r){return r.status==="notcount"||r.status==="notfound";}).length;
+  }
+
+  // ---------- export CSV ----------
+  function csvEscape(v){
+    v = (v===undefined || v===null) ? "" : String(v);
+    if(/[",\n]/.test(v)) v = '"' + v.replace(/"/g,'""') + '"';
+    return v;
+  }
+  function toCsv(rows, headers){
+    var lines = [headers.join(",")];
+    rows.forEach(function(r){
+      lines.push(headers.map(function(h){ return csvEscape(r[h]); }).join(","));
+    });
+    return lines.join("\r\n");
+  }
+  document.getElementById("btnExportCsv").addEventListener("click", function(){
+    var out = [];
+    out.push("=== SCAN / COUNT ===");
+    out.push(toCsv(scanRecords, ["ts","method","fixture","status","barcode","itemName","sysQty","countQty","unitCost","note"]));
+    out.push("");
+    out.push("=== LP FOCUS CHECK ===");
+    out.push(toCsv(lpRecords, ["ts","fixture","barcode","itemName","reportQty","physicalQty","result","note","signer"]));
+    out.push("");
+    out.push("=== NEGATIVE STOCK ===");
+    out.push(toCsv(negRecords, ["ts","barcode","itemName","qty","reason","status","note"]));
+    var blob = new Blob(["﻿" + out.join("\r\n")], {type:"text/csv;charset=utf-8;"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var dateStr = elDate.value || new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = "lp-stock-count-11252-" + dateStr + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast("Export CSV แล้ว");
+  });
+
+  document.getElementById("btnClearAll").addEventListener("click", function(){
+    if(!confirm("ยืนยันล้างข้อมูลทั้งหมดในเครื่องนี้? การกระทำนี้ย้อนกลับไม่ได้")) return;
+    scanRecords = []; lpRecords = []; negRecords = [];
+    save(STORE_KEYS.scan, scanRecords);
+    save(STORE_KEYS.lp, lpRecords);
+    save(STORE_KEYS.neg, negRecords);
+    renderScan(); renderLp(); renderNeg(); refreshSummary();
+    toast("ล้างข้อมูลแล้ว");
+  });
+
+  // ---------- Adjust code reference ----------
+  var ADJUST_CODES = [
+    {code:"1", name:"Promotion Expense", cat:"", desc:"ค่าใช้จ่ายส่งเสริมการขาย — ของแถม/สมนาคุณ/ของขวัญให้ลูกค้า"},
+    {code:"2", name:"Store Expense", cat:"", desc:"เบิกของหน้าร้านมาใช้ เช่น ถุงมือ รองเท้ายาง หลอดไฟ"},
+    {code:"3", name:"Office Expense", cat:"", desc:"กระดาษ A4 ปากกา สมุด — แผนกที่ไม่เข้าข้อ 2"},
+    {code:"4", name:"Fixed Asset", cat:"", desc:"อายุใช้งาน ≥1 ปี มูลค่า ≥1,000 บาท"},
+    {code:"5", name:"Misc. Personal Expense", cat:"", desc:"สวัสดิการพนักงาน"},
+    {code:"6", name:"Cost of Town Center", cat:"", desc:"ต้นทุนขายแผนกพลาซ่า"},
+    {code:"7", name:"Manual Return to Supplier", cat:"", desc:"ตัด Stock + Generate C/N ไป AP Oracle"},
+    {code:"8", name:"ขายผิด Barcode", cat:"", desc:"ห้ามใช้ Consignment/BAS · FF ≤5 กก./ครั้ง · ปรับได้ ±"},
+    {code:"9", name:"De-pack / Re-pack", cat:"", desc:"ไม่รวมใน Adjustment Value · ปรับได้ ±"},
+    {code:"10", name:"Incorrect Receiving", cat:"", desc:"บันทึกรับผิดจำนวน (รหัสถูก) · ส่งเอกสารลงบัญชี สบบ."},
+    {code:"11", name:"Non-Receiving Article / ขายล่วงหน้า B2B", cat:"", desc:"In ก่อนขาย → Out ตอนรับจริง · ต้องอนุมัติ VP OPT · ปรับบวกอย่างเดียว"},
+    {code:"12", name:"Incorrect Return to Supplier", cat:"", desc:"คืนผิดร้าน/ผิดรหัส · ส่งเอกสารลงบัญชี สบบ."},
+    {code:"13", name:"ประมูลสินค้าชำรุด", cat:"Damage", desc:"เครดิต Dry Food/Non Food เท่านั้น"},
+    {code:"14", name:"Non-POS Sale", cat:"", desc:"ขายหลังร้านไม่ผ่าน EPOS"},
+    {code:"21", name:"สต๊อกชำรุด/เน่าเสีย", cat:"Damage", desc:"เครดิตทุกแผนก"},
+    {code:"22", name:"ขาดส่งจาก DC", cat:"Shrinkage", desc:"ห้ามใช้ในวัน Apply ของ Annual Stock Count"},
+    {code:"23", name:"ผลต่างตรวจนับประจำวัน (DCP)", cat:"Shrinkage", desc:"ห้ามใช้ในวัน Apply ของ Annual Stock Count"},
+    {code:"25", name:"หมดอายุ", cat:"Damage", desc:"Dry Food + Perishable"},
+    {code:"26", name:"Claims allowance from Fresh Food DC", cat:"", desc:"ปรับหลังได้ CN จาก DC — มีผลต่อต้นทุนขาย — Head Office ใช้"},
+    {code:"29", name:"Consumption of Packaging", cat:"", desc:"Sub Dept 89 — Key ที่ช่อง Availab. ไม่ใช่ Difference — GR คีย์"},
+    {code:"30", name:"Auto cash card BAS (แผนกอื่น)", cat:"", desc:"Auto adjust — ไม่ต้องตรวจนับสินค้า"},
+    {code:"31", name:"Auto cash card BAS (แผนก Cash Card)", cat:"", desc:"Auto adjust — ไม่ต้องตรวจนับสินค้า"},
+    {code:"32", name:"Products for Sales Support", cat:"", desc:"SOP-LPS-019 — LP HO Upload ให้เท่านั้น สาขาคีย์เองไม่ได้ ห้ามใช้แก้ปัญหาสูญหาย/เสียหาย"},
+    {code:"801", name:"Adjust Value and Quantity", cat:"", desc:"Head Office — ปรับจำนวน+มูลค่า (Avg.Cost ผิด)"},
+    {code:"802", name:"Adjust Value", cat:"", desc:"Head Office — ปรับมูลค่า/Avg.Cost อย่างเดียว"},
+    {code:"914", name:"Structure Kit", cat:"", desc:"ระบบอัตโนมัติ — สร้าง Kit Article"},
+    {code:"915", name:"Breakout Kit", cat:"", desc:"ระบบอัตโนมัติ — ยกเลิก Kit Article"},
+    {code:"923", name:"นับเกินระบบ", cat:"Shrinkage", desc:"ระบบอัตโนมัติจากการ Apply Stock Take"},
+    {code:"924", name:"นับน้อยกว่าระบบ", cat:"Shrinkage", desc:"ระบบอัตโนมัติจากการ Apply Stock Take"},
+    {code:"972", name:"Receiving Changement", cat:"", desc:"แก้รายการรับก่อน Matching"},
+    {code:"973", name:"Invoice Matching", cat:"", desc:"ส่วนต่าง PO กับ DO"},
+    {code:"974", name:"Import Adjustment", cat:"", desc:"ส่วนต่างราคาทุนหลังบันทึก Cost"},
+    {code:"975", name:"Counter Balance", cat:"", desc:"แก้การรับหลัง Save Stock แต่ยังไม่ Apply"},
+    {code:"978", name:"Return to DC Correction", cat:"", desc:"Warehouse พบ stock diff — DC ใช้"},
+    {code:"❌16–20", name:"Transfer to Butchery/Seafood/Produce/Deli/Bakery", cat:"ยกเลิก", desc:"ยกเลิกแล้ว ห้ามใช้"},
+    {code:"❌922", name:"Stock Count Inventory", cat:"ยกเลิก", desc:"ยกเลิกแล้ว — ใช้ 923/924 แทน"}
+  ];
+  var codeListEl = document.getElementById("codeList");
+  function renderCodes(filter){
+    filter = (filter||"").toLowerCase();
+    codeListEl.innerHTML = "";
+    var found = 0;
+    ADJUST_CODES.forEach(function(c){
+      var hay = (c.code+" "+c.name+" "+c.desc+" "+c.cat).toLowerCase();
+      if(filter && hay.indexOf(filter) === -1) return;
+      found++;
+      var catTag = "";
+      if(c.cat === "Damage") catTag = "<span class='tag tag-warn'>Damage</span>";
+      else if(c.cat === "Shrinkage") catTag = "<span class='tag tag-danger'>Shrinkage</span>";
+      else if(c.cat === "ยกเลิก") catTag = "<span class='tag tag-muted'>ยกเลิก</span>";
+      var div = document.createElement("div");
+      div.className = "code-item";
+      div.innerHTML =
+        "<div class='code-head'><span class='code-no'>"+esc(c.code)+"</span><span class='code-name'>"+esc(c.name)+"</span>"+catTag+"</div>"+
+        "<div class='code-desc'>"+esc(c.desc)+"</div>";
+      codeListEl.appendChild(div);
+    });
+    if(!found){
+      codeListEl.innerHTML = "<div class='empty'>ไม่พบ code ที่ตรงกับคำค้นหา</div>";
+    }
+  }
+  document.getElementById("codeSearch").addEventListener("input", function(e){
+    renderCodes(e.target.value);
+  });
+  renderCodes("");
+
+  // ---------- util ----------
+  function esc(v){
+    if(v===undefined || v===null) v = "";
+    return String(v).replace(/[&<>"']/g, function(ch){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch];
+    });
+  }
+
+  // ---------- init ----------
+  renderScan();
+  renderLp();
+  renderNeg();
+  refreshSummary();
+})();
+</script>
+</body>
+</html>
