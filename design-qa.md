@@ -14,7 +14,8 @@ PASS — no open P0, P1, or P2 issues.
 - [x] Thai and English labels, line capacities, and accessible card labels are present.
 - [x] Green is used for the primary card action and capacity emphasis.
 - [x] Both columns use `minmax(0, 1fr)` and have a small-screen rule at 360 px.
-- [x] Existing hidden `empInfo` and `masterInfo` nodes remain available to the current JavaScript.
+- [x] Employee identity and a compact “change employee” action remain available without adding a third card.
+- [x] Existing `empInfo` and `masterInfo` nodes remain available to the current JavaScript.
 - [x] No scanner, Firebase, offline queue, document, or desktop export logic was changed.
 - [x] HTML/CSS passes `git diff --check`; both image assets resolve in the branch.
 
