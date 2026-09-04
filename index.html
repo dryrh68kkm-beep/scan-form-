@@ -564,9 +564,11 @@ async function afterLogin(){
     $('vHome').style.display='block';
   }
 }
+// รูปแบบย่อ YYMMDDHHmm (ปี 2 หลัก ตัดวินาทีออก) — ให้เลขที่เอกสารสั้นลง อ่าน/พิมพ์ง่ายขึ้น
+// ยังกันชื่อซ้ำได้ด้วยเลขสุ่มต่อท้ายที่จุดสร้าง S.docId (ดู pickMode) เผื่อพนักงานคนเดียวกันสร้างเอกสาร 2 ใบในนาทีเดียวกัน
 function docTimeStamp(){
   const d=new Date(), p=n=>String(n).padStart(2,'0');
-  return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
+  return String(d.getFullYear()).slice(-2)+p(d.getMonth()+1)+p(d.getDate())+p(d.getHours())+p(d.getMinutes());
 }
 
 async function initApp(){
@@ -667,7 +669,7 @@ function pickMode(m){
     applyModeUI(S.mode);
     return;
   }
-  S.docId='DOC-'+m+'-'+S.employee.code+'-'+docTimeStamp()+'-'+Math.random().toString(36).slice(2,5);
+  S.docId=m+'-'+S.employee.code+'-'+docTimeStamp()+'-'+Math.random().toString(36).slice(2,5);
   S.items[m]=[]; S.locked=false;
   applyModeUI(m);
   saveDraft();
