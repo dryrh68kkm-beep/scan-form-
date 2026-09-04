@@ -15,6 +15,6 @@
  *    Firestore Database > Rules > Publish
  */
 var FIREBASE_CONFIG = {
-  apiKey: 'REPLACE_ME_apiKey',
-  projectId: 'REPLACE_ME_projectId'
+  apiKey: 'AIzaSyCiSB77UsUXpikmd60TXh0We8GhQuHy8BI',
+  projectId: 'scanning-829f5'
 };
