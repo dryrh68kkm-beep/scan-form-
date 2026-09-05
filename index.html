@@ -390,6 +390,14 @@ function normBc(v){ return String(v==null?'':v).replace(/\D/g,''); }
 function scaleKey(bc){
   return (bc.length>=11 && bc.length<=18 && bc[0]==='2' && bc[6]==='0') ? bc.slice(1,6) : bc;
 }
+// สินค้าชั่งน้ำหนักฝังน้ำหนักจริงไว้ใน 4 หลักก่อน check digit ตัวสุดท้าย เป็นกรัม (นัย 3 ตำแหน่งทศนิยม)
+// เช่นป้าย 0.654 กก. x 75.01 บาท/กก. = 49.0 บาท จะเจอ "...0654X" ในบาร์โค้ด (X = check digit)
+// ต้องเอาน้ำหนักนี้คูณราคาต่อหน่วยใน master ถึงจะได้ราคาจริงของชิ้นที่ชั่งมา ไม่ใช่ราคาต่อกก.เฉยๆ
+function scaleWeightKg(bc){
+  if(!(bc.length>=11 && bc.length<=18 && bc[0]==='2' && bc[6]==='0')) return null;
+  const g = Number(bc.slice(-5,-1));
+  return (Number.isFinite(g) && g>0) ? g/1000 : null;
+}
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function thDate(iso){ if(!iso) return ''; const p=iso.split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; }
 function roundUpPrice(price,pct){ return Math.ceil(Number((price-(price*pct)).toFixed(6))); }
@@ -740,9 +748,14 @@ function onScan(txt){
   if(txt===S.lastScan.code && now-S.lastScan.t<2000) return;
   S.lastScan={code:txt,t:now};
   if(navigator.vibrate) navigator.vibrate(45);
-  openSheet(scaleKey(normBc(txt)));
+  const raw=normBc(txt);
+  openSheet(scaleKey(raw), null, scaleWeightKg(raw));
 }
-function manualEntry(){ const v=prompt('พิมพ์บาร์โค้ด'); if(v) openSheet(scaleKey(normBc(v))); }
+function manualEntry(){
+  const v=prompt('พิมพ์บาร์โค้ด'); if(!v) return;
+  const raw=normBc(v);
+  openSheet(scaleKey(raw), null, scaleWeightKg(raw));
+}
 
 /* ---------- item sheet ---------- */
 function chip(txt,on,fn,teal){ const b=document.createElement('div');
@@ -774,7 +787,7 @@ $('fPct').addEventListener('input', ()=>{ buildChips(); calcPrice(); });
 $('fCode').addEventListener('input', buildChips);
 $('fReason').addEventListener('input', buildChips);
 
-function openSheet(bc, editIdx){
+function openSheet(bc, editIdx, weightKg){
   S.edit = (editIdx==null)?null:editIdx;
   const isRTC = S.mode==='RTC';
   const it = S.edit!=null ? S.items[S.mode][S.edit] : null;
@@ -790,7 +803,10 @@ function openSheet(bc, editIdx){
   $('rtcFields').style.display = isRTC?'block':'none';
   if(isRTC){
     $('fUnit').value=(it&&it.unit)||(m&&m.unit)||'ชิ้น';
-    $('fPrice').value=(it&&it.price)||(m&&m.price)||'';
+    // ของใหม่ (ไม่ใช่แก้รายการเดิม) ที่เป็นสินค้าชั่งน้ำหนัก — เอาน้ำหนักจากบาร์โค้ดคูณราคาต่อหน่วยใน
+    // master ก่อน ถึงจะได้ราคาจริงของชิ้นนั้น ไม่ใช่ราคาต่อกก./ต่อหน่วยเฉยๆ (แก้รายการเดิมใช้ it.price เดิมไว้)
+    const scaledPrice = (!it && weightKg && m && m.price) ? Math.round(weightKg*m.price*100)/100 : null;
+    $('fPrice').value=(it&&it.price)||scaledPrice||(m&&m.price)||'';
     $('fPct').value= it?Math.round(it.pct*100):'';
     $('fRQty').value= it?it.qty:1;
     $('fRExp').value=(it&&it.expIso)||'';
