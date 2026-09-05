@@ -156,9 +156,10 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
 <div class="toast" id="toast"></div>
 
 <script src="vendor/jszip.min.js"></script>
+<script src="vendor/exceljs.min.js"></script>
 <script src="cf-config.js?v=20260905-1200"></script>
 <script src="js/cfdb.js?v=20260905-1200"></script>
-<script src="js/export.js?v=20260905-1600"></script>
+<script src="js/export.js?v=20260905-1800"></script>
 <script>
 const $ = id => document.getElementById(id);
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show');
@@ -313,7 +314,7 @@ async function downloadDoc(){
     if(!confirm('เอกสารนี้เคยดาวน์โหลดไปแล้ว '+d.downloadCount+' ครั้ง ต้องการดาวน์โหลดซ้ำหรือไม่?')) return;
   }
   try{
-    const meta = {branch:$('mBranch').value.trim(), dept:$('mDept').value.trim(), date:d.date, docId:d._id};
+    const meta = {branch:$('mBranch').value.trim(), dept:$('mDept').value.trim(), date:d.date, docId:d._id, employeeCode:d.employeeCode};
     const {blob, filename} = await window.buildExportPackage(d.mode, d.items||[], meta);
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob); a.download=filename;
