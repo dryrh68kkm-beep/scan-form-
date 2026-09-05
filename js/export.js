@@ -58,6 +58,40 @@ async function exportLoadTemplate(mode) {
   return buf;
 }
 
+// บั๊กของ ExcelJS: โลโก้ (xl/drawings/drawing1.xml) ที่โหลดมาจาก template แล้ว save กลับ
+// จะถูกเขียน <a:off>/<a:ext> (ตำแหน่ง/ขนาดรูป) เป็น 0 ทั้งหมด — Excel เปิดแล้วขึ้น [Repaired]
+// "Removed Part: /xl/drawings/drawing1.xml (Drawing shape)" เพราะรูปที่ขนาด 0 ผิดสเปก OOXML
+// แก้โดยจำค่าตำแหน่ง/ขนาดจริงจาก template ต้นฉบับไว้ก่อน แล้วแปะกลับเข้าไปในไฟล์ที่ ExcelJS เขียนออกมา
+var exportDrawingXfrmCache = {};
+async function exportGetOriginalDrawingXfrm(mode, templateBytes) {
+  if (mode in exportDrawingXfrmCache) return exportDrawingXfrmCache[mode];
+  let result = null;
+  try {
+    const zip = await JSZip.loadAsync(templateBytes.slice(0));
+    const f = zip.file('xl/drawings/drawing1.xml');
+    if (f) {
+      const xml = await f.async('string');
+      const m = xml.match(/<a:off x="(\d+)" y="(\d+)"\/><a:ext cx="(\d+)" cy="(\d+)"\/>/);
+      if (m) result = { x: m[1], y: m[2], cx: m[3], cy: m[4] };
+    }
+  } catch (e) { /* ไม่มีรูปในเทมเพลตนี้ก็ข้ามไป ไม่ถือเป็น error */ }
+  exportDrawingXfrmCache[mode] = result;
+  return result;
+}
+async function exportFixDrawingXfrm(xlsxBuf, mode, templateBytes) {
+  const xfrm = await exportGetOriginalDrawingXfrm(mode, templateBytes);
+  if (!xfrm) return xlsxBuf;
+  const zip = await JSZip.loadAsync(xlsxBuf);
+  const f = zip.file('xl/drawings/drawing1.xml');
+  if (!f) return xlsxBuf;
+  let xml = await f.async('string');
+  if (!/<a:off x="0" y="0"\/><a:ext cx="0" cy="0"\/>/.test(xml)) return xlsxBuf; // ExcelJS แก้บั๊กนี้แล้วในเวอร์ชันใหม่กว่า ไม่ต้องแตะ
+  xml = xml.replace('<a:off x="0" y="0"/><a:ext cx="0" cy="0"/>',
+    '<a:off x="' + xfrm.x + '" y="' + xfrm.y + '"/><a:ext cx="' + xfrm.cx + '" cy="' + xfrm.cy + '"/>');
+  zip.file('xl/drawings/drawing1.xml', xml);
+  return zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' });
+}
+
 /*
  * mode: 'ADJ' | 'RTC'
  * items: array ของรายการ (โครงสร้างเดียวกับ S.items[mode] เดิม)
@@ -116,7 +150,8 @@ window.buildExportXlsx = async function (mode, items, meta, page) {
 
   if (mode === 'RTC') wb.calcProperties.fullCalcOnLoad = true; // บังคับ Excel คำนวณสูตร H ใหม่ตอนเปิดไฟล์
 
-  const buf = await wb.xlsx.writeBuffer();
+  let buf = await wb.xlsx.writeBuffer();
+  buf = await exportFixDrawingXfrm(buf, mode, templateBytes);
   const out = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   // ADJ_<employeeCode>_<date>_<docId>.xlsx
   const filename = mode + '_' + exportSanitizeFilename(meta.employeeCode || 'emp') + '_' +
