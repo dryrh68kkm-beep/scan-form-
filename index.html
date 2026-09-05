@@ -314,6 +314,7 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
     <div class="prodbox" id="shProd">
       <div class="nm" id="shName">—</div>
       <div class="bc" id="shBc"></div>
+      <div class="bc" id="shWeight" style="display:none"></div>
     </div>
     <div class="field" id="wrapManualName" style="display:none">
       <label class="fld">ชื่อสินค้า (ไม่พบในรายการ — พิมพ์เอง)</label>
@@ -852,6 +853,9 @@ function openSheet(bc, editIdx, weightKg){
   const m = S.master[code];
   $('shTitle').textContent = S.edit!=null?'แก้ไขรายการ':'เพิ่มรายการ';
   $('shBc').textContent = code;
+  // แสดงน้ำหนักที่ถอดจากบาร์โค้ดให้เห็นด้วย (เฉพาะสินค้าชั่งน้ำหนัก) จะได้เช็คกับป้ายจริงได้ทันที
+  if(weightKg){ $('shWeight').textContent = 'น้ำหนัก '+weightKg.toFixed(3)+' กก.'; $('shWeight').style.display='block'; }
+  else { $('shWeight').style.display='none'; }
   $('shName').textContent = (it&&it.name)||(m&&m.name)||'ไม่พบในรายการสินค้า';
   $('shProd').className = 'prodbox'+(((m&&m.name)||(it&&it.name))?'':' warn');
   $('wrapManualName').style.display = (m&&m.name)?'none':'block';
