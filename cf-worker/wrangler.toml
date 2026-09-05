@@ -1,0 +1,8 @@
+name = "scan-form"
+main = "worker.js"
+compatibility_date = "2026-09-03"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "scan-form-lp"
+database_id = "10f0ba98-42f4-436e-a7ae-ff98d6fb0d60"
