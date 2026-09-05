@@ -9,4 +9,4 @@
  *    มาใส่แทน REPLACE_ME ด้านล่าง
  * 4. ถ้าเคยมีข้อมูลใน Firebase มาก่อน ให้เปิด cf-worker/migrate.html ครั้งเดียวเพื่อย้ายข้อมูล
  */
-var CF_API_BASE = 'https://REPLACE_ME.workers.dev';
+var CF_API_BASE = 'https://scan-form.dryrh68kkm.workers.dev';
