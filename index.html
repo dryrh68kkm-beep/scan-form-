@@ -622,9 +622,16 @@ async function loadMaster(inp){
   try{
     const rows=parseCSV(await f.text());
     const h=(rows[0]||[]).map(x=>String(x||'').trim().toUpperCase());
-    const find=ks=>h.findIndex(x=>ks.some(k=>x.indexOf(k)>=0));
-    const iB=find(['BARCODE','บาร์โค้ด']), iN=find(['NAME','ชื่อ','DESC']),
-          iP=find(['PRICE','ราคา']), iU=find(['UNIT','หน่วย']);
+    // หาคอลัมน์ทีละ "ลำดับความเฉพาะเจาะจง" (tier) ก่อน — คำทั่วไปอย่าง NAME/ชื่อ อาจชนกับคอลัมน์อื่น
+    // ที่ไม่ใช่ชื่อสินค้า (เช่นไฟล์จากระบบ POS ที่มี DIVISION_NAME, DEPT_GROUP_NAME ปนกับ ART_SV_NAME)
+    // จึงต้องลองคำเฉพาะเจาะจงกว่าก่อน ค่อย fallback ไปคำทั่วไปถ้าไม่เจอ
+    const find=tiers=>{
+      for(const ks of tiers){ const idx=h.findIndex(x=>ks.some(k=>x.indexOf(k)>=0)); if(idx>=0) return idx; }
+      return -1;
+    };
+    const iB=find([['BARCODE','บาร์โค้ด']]),
+          iN=find([['ART_SV_NAME','ITEM_NAME','PRODUCT_NAME'],['ชื่อ','DESC','NAME']]),
+          iP=find([['PRICE','ราคา']]), iU=find([['UNIT','หน่วย','UOM']]);
     if(iB<0){ toast('ไม่พบคอลัมน์ BARCODE'); return; }
     const ov={}; let n=0;
     for(let i=1;i<rows.length;i++){
