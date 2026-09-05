@@ -133,26 +133,78 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
 }
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- Login screen refinement (ตาม mockup ที่อนุมัติ — ยึดโทนเดียวกับ Home) ----------
+   ทุกกฎในบล็อกนี้ scope ด้วย #vLogin หรือ header.app.login-mode เท่านั้น ไม่แก้ .card/.btn/input
+   ฐาน (ใช้ร่วมกับ Home/สแกน/ฯลฯ) เพื่อไม่ให้กระทบหน้าจออื่น และไม่สร้างคลาสซ้ำชุดใหม่ */
+.app-titlewrap{flex:1; min-width:0}
+.app-sub{display:none; margin:2px 0 0; font-size:12.5px; color:var(--sec); font-weight:600}
+header.app.login-mode{background:linear-gradient(180deg,#FFFFFF 0%,var(--tealSoft) 100%);
+  padding-top:calc(22px + env(safe-area-inset-top)); padding-bottom:18px}
+header.app.login-mode .app-mark{width:60px; height:60px; border-radius:18px; box-shadow:0 8px 20px rgba(17,158,154,.22)}
+header.app.login-mode h1{font-size:23px; font-weight:800}
+header.app.login-mode .app-sub{display:block}
+
+#vLogin{position:relative; padding-top:22px; overflow:hidden}
+#vLogin::before,#vLogin::after{content:'';position:absolute;border-radius:50%;pointer-events:none;z-index:0;
+  background:radial-gradient(circle,rgba(32,197,190,.16) 0%,rgba(32,197,190,0) 70%)}
+#vLogin::before{width:220px;height:220px;top:-70px;right:-60px}
+#vLogin::after{width:180px;height:180px;bottom:10px;left:-70px;
+  background:radial-gradient(circle,rgba(34,169,230,.10) 0%,rgba(34,169,230,0) 70%)}
+#vLogin > *{position:relative; z-index:1}
+
+#vLogin .card{border-radius:30px; border-color:var(--tealSoft); box-shadow:0 14px 32px rgba(17,158,154,.10); padding:26px 22px}
+#vLogin .card h2{display:flex; align-items:center; gap:10px; font-size:20px; font-weight:800; color:var(--tealStrong)}
+#vLogin .card h2 svg{color:var(--tealStrong); flex:0 0 auto}
+#vLogin .card p.help{color:var(--sec); line-height:1.55; margin-top:4px}
+#vLogin label.fld{font-size:13.5px; font-weight:700; color:var(--navy)}
+#vLogin .field{margin-top:18px}
+#vLogin .inputicon{position:relative}
+#vLogin .inputicon svg{position:absolute; left:16px; top:50%; transform:translateY(-50%); color:var(--tealStrong); pointer-events:none}
+#vLogin input{height:58px; border-radius:17px; border-color:var(--tealSoft); padding-left:46px; font-size:16px}
+#vLogin input:focus{border-color:var(--teal); box-shadow:0 0 0 3px rgba(32,197,190,.14)}
+#vLogin .btn{height:58px; border-radius:19px; margin-top:22px;
+  background:linear-gradient(135deg,var(--teal) 0%,var(--tealStrong) 100%);
+  box-shadow:0 10px 24px rgba(17,158,154,.28);
+  display:flex; align-items:center; justify-content:center; gap:8px}
+#vLogin #loginMsg{min-height:18px}
+@media(max-width:360px){
+  header.app.login-mode .app-mark{width:52px; height:52px}
+  header.app.login-mode h1{font-size:20px}
+  #vLogin .card{padding:22px 16px}
+}
 </style>
 </head>
 <body>
 
-<header class="app">
+<header class="app login-mode" id="appHeader">
   <img class="app-mark" src="assets/app-mark.webp" alt="" width="96" height="96">
-  <h1 id="appTitle">LP Scan Form</h1>
+  <div class="app-titlewrap">
+    <h1 id="appTitle">LP Scan Form</h1>
+    <p class="app-sub" id="appSub">สแกนง่าย จัดการได้ไว</p>
+  </div>
   <span class="badge" id="syncBadge" style="display:none"></span>
   <span class="badge" id="modeBadge" style="display:none"></span>
 </header>
 
 <section id="vLogin" class="wrap">
   <div class="card">
-    <h2>เข้าสู่ระบบ</h2>
+    <h2>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+      เข้าสู่ระบบ
+    </h2>
     <p class="help">กรอกรหัสพนักงานเพื่อเริ่มงาน — ระบบจะตรวจกับรายชื่อพนักงานก่อนเสมอ</p>
     <div class="field" style="margin-top:16px">
       <label class="fld">รหัสพนักงาน</label>
-      <input id="fEmpCode" placeholder="เช่น E1023" autocapitalize="characters">
+      <div class="inputicon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="1.5"/><path d="M6 15c.5-1.5 1.8-2 2.5-2s2 .5 2.5 2"/><path d="M14 9h4M14 13h4"/></svg>
+        <input id="fEmpCode" placeholder="เช่น E1023" autocapitalize="characters">
+      </div>
     </div>
-    <button class="btn" onclick="checkEmployee()">เริ่มงาน</button>
+    <button class="btn" onclick="checkEmployee()">
+      เริ่มงาน
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
     <p class="help" id="loginMsg" style="margin-top:12px;color:var(--danger)"></p>
   </div>
 </section>
@@ -477,15 +529,19 @@ window.checkEmployee = async function(){
       : 'ระบบส่วนกลางปฏิเสธคำขอ (' + (e.message||'ไม่ทราบสาเหตุ') + ') — แจ้งผู้ดูแลให้ตรวจ Firestore Security Rules';
   }
 };
+// สลับสไตล์ header เฉพาะตอนอยู่หน้า Login (โลโก้ใหญ่/subtitle) — ไม่กระทบ appTitle ที่ยังใช้ร่วมกับหน้าอื่น
+function setHeaderLoginMode(on){ const h=$('appHeader'); if(h) h.classList.toggle('login-mode', !!on); }
 window.logoutEmployee = function(){
   S.employee=null; S.docId=null; S.locked=false;
   try{ localStorage.removeItem('lpsf_employee_code'); }catch(e){}
   $('vHome').style.display='none'; $('vLogin').style.display='block'; $('fEmpCode').value='';
+  setHeaderLoginMode(true);
 };
 async function afterLogin(){
   $('empInfo').textContent='พนักงาน: '+S.employee.name+' ('+S.employee.code+')';
   const draft=loadDraft(S.employee.code);
   $('vLogin').style.display='none';
+  setHeaderLoginMode(false);
   if(draft&&draft.id&&draft.doc){
     const openDoc=draft.doc;
     S.docId=draft.id; S.locked=false;
