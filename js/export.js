@@ -11,11 +11,15 @@
 var EXPORT_CFG = {
   ADJ: { first: 5, last: 47, hdrBranch: 'A2', hdrDate: 'A3',
          cols: { no: 'A', bc: 'B', name: 'C', code: 'D', qty: 'E', reason: 'F', exp: 'G' },
-         templateUrl: 'templates/ADJ_template.xlsx?v=20260905-1600' },
+         // style id เดิมของคอลัมน์ G (วันหมดอายุ) -> style คู่แฝดที่ numFmt เป็น dd/mm/yyyy
+         // (เพิ่มไว้ใน templates/ADJ_template.xlsx โดยคง border/font เดิมทุกอย่าง เปลี่ยนแค่ number format)
+         dateStyleMap: { 6: 38, 22: 39 },
+         templateUrl: 'templates/ADJ_template.xlsx?v=20260905-1700' },
   RTC: { first: 9, last: 28, hdrBranch: 'A4', hdrDate: 'A5',
          cols: { no: 'A', bc: 'B', name: 'C', unit: 'D', price: 'E', pct: 'F', qty: 'G',
                  newPrice: 'H', left: 'I', dateC25: 'J', exp: 'K' },
-         templateUrl: 'templates/RTC_template.xlsx?v=20260905-1600' }
+         dateStyleMap: { 13: 82, 15: 83, 16: 84, 17: 85 },
+         templateUrl: 'templates/RTC_template.xlsx?v=20260905-1700' }
 };
 var EXPORT_SHEET_PATH = 'xl/worksheets/sheet2.xml';
 
@@ -25,6 +29,10 @@ function exportEsc(s) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 function exportThDate(iso) { if (!iso) return ''; const p = iso.split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso; }
+// ตัดอักขระที่ใช้เป็นชื่อไฟล์ไม่ได้ (Windows/macOS ต้องห้าม \/:*?"<>| และช่องว่างต้นท้าย)
+function exportSanitizeFilename(s) {
+  return String(s || '').trim().replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, '');
+}
 
 function exportSetCell(xml, ref, val) {
   const re = new RegExp('<c r="' + ref + '"([^>]*?)(\\/>|>[\\s\\S]*?<\\/c>)');
@@ -39,6 +47,35 @@ function exportSetCell(xml, ref, val) {
   } else {
     cell = '<c r="' + ref + '"' + attrs + ' t="inlineStr"><is><t xml:space="preserve">' + exportEsc(val) + '</t></is></c>';
   }
+  if (m) return xml.replace(re, cell);
+  const rowN = ref.replace(/\D/g, '');
+  const rre = new RegExp('(<row r="' + rowN + '"[^>]*>)');
+  if (rre.test(xml)) return xml.replace(rre, '$1' + cell);
+  return xml;
+}
+// วันที่ 1899-12-30 คือ serial 0 ของ Excel (เผื่อ leap-year bug ปลอมของปี 1900 ตามสเปกเดิมของ Excel)
+function exportExcelSerial(iso) {
+  if (!iso) return null;
+  const p = String(iso).split('-');
+  if (p.length !== 3) return null;
+  const y = Number(p[0]), mo = Number(p[1]), d = Number(p[2]);
+  if (!y || !mo || !d) return null;
+  return Math.round((Date.UTC(y, mo - 1, d) - Date.UTC(1899, 11, 30)) / 86400000);
+}
+// เขียนวันที่เป็น Excel date serial จริง (ไม่ใช่ string) แล้วสลับ style ของเซลล์ไปใช้ตัวที่ตั้ง
+// number format เป็น dd/mm/yyyy ไว้แล้ว (คง border/font อื่นๆ ของเซลล์เดิมทั้งหมด)
+function exportSetDateCell(xml, ref, iso, styleMap) {
+  const serial = exportExcelSerial(iso);
+  if (serial == null) return exportSetCell(xml, ref, '');
+  const re = new RegExp('<c r="' + ref + '"([^>]*?)(\\/>|>[\\s\\S]*?<\\/c>)');
+  const m = xml.match(re);
+  let attrs = m ? (m[1] || '') : '';
+  const sMatch = attrs.match(/\ss="(\d+)"/);
+  const origS = sMatch ? Number(sMatch[1]) : null;
+  const mappedS = (origS != null && styleMap && styleMap[origS] != null) ? styleMap[origS] : origS;
+  attrs = attrs.replace(/\s+t="[^"]*"/g, '').replace(/\s+s="\d+"/, '');
+  const sAttr = mappedS != null ? (' s="' + mappedS + '"') : '';
+  const cell = '<c r="' + ref + '"' + sAttr + attrs + '><v>' + serial + '</v></c>';
   if (m) return xml.replace(re, cell);
   const rowN = ref.replace(/\D/g, '');
   const rre = new RegExp('(<row r="' + rowN + '"[^>]*>)');
@@ -98,21 +135,22 @@ window.buildExportXlsx = async function (mode, items, meta, page) {
       xml = exportSetCell(xml, C.pct + r, it.pct);
       xml = exportSetCell(xml, C.qty + r, it.qty);
       // C.newPrice (คอลัมน์ H) ไม่แตะ — ปล่อยให้สูตรเดิมในเทมเพลตคำนวณเองตอนเปิดไฟล์
-      xml = exportSetCell(xml, C.exp + r, exportThDate(it.expIso));
+      xml = exportSetDateCell(xml, C.exp + r, it.expIso, cfg.dateStyleMap);
     } else {
       xml = exportSetCell(xml, C.code + r, it.code);
       xml = exportSetCell(xml, C.qty + r, it.qty);
       xml = exportSetCell(xml, C.reason + r, it.reason);
-      xml = exportSetCell(xml, C.exp + r, exportThDate(it.expIso));
+      xml = exportSetDateCell(xml, C.exp + r, it.expIso, cfg.dateStyleMap);
     }
   }
 
   zip.file(EXPORT_SHEET_PATH, xml);
   const out = await zip.generateAsync({ type: 'blob',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const docPart = meta.docId ? (meta.docId + '_') : '';
-  const filename = mode + '_' + docPart + (branch || 'store').replace(/\s+/g, '') + '_' +
-    (meta.date || 'form') + (page > 0 ? ('_p' + (page + 1)) : '') + '.xlsx';
+  // ADJ_<employeeCode>_<date>_<docId>.xlsx
+  const filename = mode + '_' + exportSanitizeFilename(meta.employeeCode || 'emp') + '_' +
+    exportSanitizeFilename(meta.date || 'form') + '_' + exportSanitizeFilename(meta.docId || mode) +
+    (page > 0 ? ('_p' + (page + 1)) : '') + '.xlsx';
   return { blob: out, filename: filename };
 };
 
@@ -134,8 +172,8 @@ window.buildExportPackage = async function (mode, items, meta) {
     pkg.file(filename, blob);
   }
   const out = await pkg.generateAsync({ type: 'blob', mimeType: 'application/zip' });
-  const docPart = meta.docId ? (meta.docId + '_') : '';
-  const filename = mode + '_' + docPart + (meta.branch || 'store').replace(/\s+/g, '') + '_' +
-    (meta.date || 'form') + '_' + pages + 'pages.zip';
+  const filename = mode + '_' + exportSanitizeFilename(meta.employeeCode || 'emp') + '_' +
+    exportSanitizeFilename(meta.date || 'form') + '_' + exportSanitizeFilename(meta.docId || mode) +
+    '_' + pages + 'pages.zip';
   return { blob: out, filename: filename };
 };
