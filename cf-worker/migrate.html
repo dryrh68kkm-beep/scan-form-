@@ -13,7 +13,7 @@ pre{background:#f4f4f4;padding:12px;border-radius:6px;white-space:pre-wrap;word-
 <body>
 <h1>ย้ายข้อมูล Firestore → Cloudflare D1</h1>
 <p>เปิดหน้านี้ <b>ครั้งเดียว</b> หลัง deploy Worker เสร็จและตั้งค่า <code>../cf-config.js</code> แล้ว —
-จะดึงข้อมูลทั้ง 3 collection (documents, employees, products) จาก Firestore เดิม แล้วส่งเข้า D1 ใหม่
+จะดึงข้อมูลทั้ง 4 collection (documents, employees, products, system — system เก็บ productMaster version) จาก Firestore เดิม แล้วส่งเข้า D1 ใหม่
 (ไม่ลบ/ไม่แก้ข้อมูลใน Firestore เดิม ทำซ้ำได้โดยไม่เสียหาย — เขียนทับด้วยข้อมูลชุดเดียวกัน)</p>
 <button onclick="run()">เริ่มย้ายข้อมูล</button>
 <pre id="log"></pre>
@@ -36,7 +36,7 @@ async function run(){
     await window.fsAutoLogin();
     log('ล็อกอินสำเร็จ', 'ok');
 
-    for(const col of ['documents','employees','products']){
+    for(const col of ['documents','employees','products','system']){
       log('กำลังดึง collection "'+col+'" จาก Firestore…');
       const rows = await window.fsList(col);
       log('  พบ '+rows.length+' รายการ');
