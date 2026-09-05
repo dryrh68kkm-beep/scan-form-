@@ -318,7 +318,7 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
         <div class="field"><label class="fld">จำนวนชิ้น</label>
           <div style="display:flex; gap:8px">
             <button type="button" class="btn ghost" id="qtySignBtn" style="flex:0 0 52px; padding:0; font-size:20px; font-weight:700" onclick="toggleQtySign()">±</button>
-            <input id="fQty" type="number" inputmode="numeric" placeholder="เช่น 1" style="flex:1">
+            <input id="fQty" type="number" inputmode="decimal" step="any" placeholder="เช่น 1.5" style="flex:1">
           </div>
         </div>
         <div class="field"><label class="fld">วันหมดอายุ</label><input id="fExp" type="date"></div>
