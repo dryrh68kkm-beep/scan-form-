@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ทดสอบความเร็ว Google Apps Script</title>
+<style>
+body{font-family:sans-serif;max-width:640px;margin:40px auto;padding:0 16px;line-height:1.6}
+button{padding:10px 20px;font-size:16px;cursor:pointer;margin-right:8px}
+pre{background:#f4f4f4;padding:12px;border-radius:6px;white-space:pre-wrap;word-break:break-all}
+.warn{background:#fff3cd;padding:12px;border-radius:6px;border:1px solid #ffe69c}
+</style>
+</head>
+<body>
+<h1>ทดสอบความเร็ว Google Apps Script ก่อนตัดสินใจสลับจาก Firestore</h1>
+<div class="warn">
+  ต้อง deploy <code>Code.gs</code> และตั้งค่า <code>gs-config.js</code> (แก้ REPLACE_ME) ก่อนถึงจะกดทดสอบได้
+</div>
+<p>เทียบเวลาที่ได้กับ Firestore REST (ปกติเปิดแอปจริงตอนนี้ใช้เวลาต่อ request &lt;200-400ms)
+ถ้าตัวเลขที่ได้จาก Apps Script สูงกว่านี้มาก (เป็นวินาที) แปลว่ายืนยันสิ่งที่เตือนไว้ — การ login/เปิดแอปจะรู้สึกช้าลงชัดเจน</p>
+<button onclick="testHealth()">ทดสอบ health check (fsAutoLogin) x5</button>
+<button onclick="testList()">ทดสอบอ่าน collection (fsList) x3</button>
+<pre id="log"></pre>
+
+<script src="gs-config.js"></script>
+<script src="gsheet.js"></script>
+<script>
+function log(msg){ document.getElementById('log').textContent += msg + '\n'; }
+async function testHealth(){
+  document.getElementById('log').textContent='';
+  try{
+    log('กำลังทดสอบ...');
+    const times = await window.gsLatencyTest(5);
+    log('เวลาแต่ละครั้ง (ms): ' + times.map(t=>t.toFixed(0)).join(', '));
+    log('เฉลี่ย: ' + (times.reduce((a,b)=>a+b,0)/times.length).toFixed(0) + ' ms');
+  }catch(e){ log('ผิดพลาด: ' + e.message); console.error(e); }
+}
+async function testList(){
+  try{
+    log('กำลังทดสอบอ่าน collection "products"...');
+    for(let i=0;i<3;i++){
+      const t0=performance.now();
+      const rows = await window.fsList('products');
+      log('  ครั้งที่ '+(i+1)+': ' + (performance.now()-t0).toFixed(0) + ' ms (' + rows.length + ' รายการ)');
+    }
+  }catch(e){ log('ผิดพลาด: ' + e.message); console.error(e); }
+}
+</script>
+</body>
+</html>
