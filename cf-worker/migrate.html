@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ย้ายข้อมูล Firestore → Cloudflare D1</title>
+<style>
+body{font-family:sans-serif;max-width:640px;margin:40px auto;padding:0 16px;line-height:1.6}
+button{padding:10px 20px;font-size:16px;cursor:pointer}
+pre{background:#f4f4f4;padding:12px;border-radius:6px;white-space:pre-wrap;word-break:break-all}
+.ok{color:#0a7a0a}.err{color:#c00}
+</style>
+</head>
+<body>
+<h1>ย้ายข้อมูล Firestore → Cloudflare D1</h1>
+<p>เปิดหน้านี้ <b>ครั้งเดียว</b> หลัง deploy Worker เสร็จและตั้งค่า <code>../cf-config.js</code> แล้ว —
+จะดึงข้อมูลทั้ง 3 collection (documents, employees, products) จาก Firestore เดิม แล้วส่งเข้า D1 ใหม่
+(ไม่ลบ/ไม่แก้ข้อมูลใน Firestore เดิม ทำซ้ำได้โดยไม่เสียหาย — เขียนทับด้วยข้อมูลชุดเดียวกัน)</p>
+<button onclick="run()">เริ่มย้ายข้อมูล</button>
+<pre id="log"></pre>
+
+<script src="../firebase-config.js"></script>
+<script src="../js/firestore.js"></script>
+<script src="../cf-config.js"></script>
+<script>
+function log(msg, cls){
+  const el=document.getElementById('log');
+  const line=document.createElement('div');
+  if(cls) line.className=cls;
+  line.textContent=msg;
+  el.appendChild(line);
+}
+async function run(){
+  document.getElementById('log').innerHTML='';
+  try{
+    log('กำลังล็อกอินเข้า Firestore เดิม…');
+    await window.fsAutoLogin();
+    log('ล็อกอินสำเร็จ', 'ok');
+
+    for(const col of ['documents','employees','products']){
+      log('กำลังดึง collection "'+col+'" จาก Firestore…');
+      const rows = await window.fsList(col);
+      log('  พบ '+rows.length+' รายการ');
+      if(!rows.length) continue;
+      const payload = { col, rows: rows.map(r=>{
+        const id=r._id; const data=Object.assign({}, r); delete data._id;
+        return {id, data};
+      })};
+      const resp = await fetch(CF_API_BASE.replace(/\/$/,'') + '/admin/import', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+      });
+      const d = await resp.json();
+      if(d.error) throw new Error(col+': '+d.error.message);
+      log('  ส่งเข้า D1 สำเร็จ: '+d.imported+' รายการ', 'ok');
+    }
+    log('เสร็จสิ้น — ย้ายข้อมูลครบทุก collection แล้ว', 'ok');
+  }catch(e){
+    log('ผิดพลาด: '+(e.message||e), 'err');
+    console.error(e);
+  }
+}
+</script>
+</body>
+</html>
