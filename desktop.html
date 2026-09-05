@@ -414,10 +414,14 @@ window.uploadEmployees = async function(inp){
 };
 
 /* ---------- init ---------- */
+// เดิม poll ทุก 4 วิแบบไม่มีเงื่อนไข ทั้งวันทั้งคืนแม้แท็บถูกซ่อน — fsList อ่านทั้ง collection
+// ทุกครั้ง (นับเป็น 1 read ต่อ 1 เอกสารที่คืนมา) เปิดค้างไว้ไม่กี่ชั่วโมงก็ชนโควตาฟรีของ Firestore
+// (50,000 reads/วัน) ทำให้แอปทั้งระบบใช้งานไม่ได้ทั้งวัน — ยืดเป็น 20 วิ และหยุด poll ตอนแท็บไม่ได้เปิดดูอยู่
 async function init(){
   try{ await window.fsAutoLogin(); }catch(e){}
   await loadDocs();
-  setInterval(loadDocs, 4000);
+  setInterval(function(){ if(!document.hidden) loadDocs(); }, 20000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) loadDocs(); });
 }
 window.addEventListener('load', init);
 </script>
