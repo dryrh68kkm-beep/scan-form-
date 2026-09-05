@@ -358,6 +358,14 @@ function parseCSV(txt){
 }
 // ห้ามตัดเลข 0 นำหน้าออก — บาร์โค้ดจริง (เช่น EAN-13) มีความหมายทุกหลักรวมถึง 0 นำหน้า
 function normBc(v){ return String(v==null?'':v).replace(/\D/g,''); }
+// บาร์โค้ดสินค้าชั่งน้ำหนัก/นับชิ้น (Fresh Food, Bakery, Deli) ฝังน้ำหนัก/ราคาไว้ในตัวเลขเอง — คนละแพ็ค
+// ของสินค้าตัวเดียวกันได้บาร์โค้ด "ไม่เหมือนกัน" ทุกครั้ง ต้องตัดเอาแค่รหัสสินค้า (PLU) 5 หลักตรงกลาง
+// (หลักที่ 2-6) มาใช้แทน — โครงสร้างคือ "2"+PLU 5 หลัก+"0"+ส่วนที่เหลือ พบทั้งแบบ 12 หลัก (ในไฟล์ฐานข้อมูล
+// กลางจาก HO เช่น 211918000000) และ 18 หลัก (สแกนจากป้ายจริง เช่น 211278010275001663) — ต้อง sync
+// กับฟังก์ชันเดียวกันใน index.html ทุกครั้งที่แก้ ไม่งั้นมือถือกับเดสก์ท็อปจะจับคู่รหัสสินค้าไม่ตรงกัน
+function scaleKey(bc){
+  return (bc.length>=11 && bc.length<=18 && bc[0]==='2' && bc[6]==='0') ? bc.slice(1,6) : bc;
+}
 window.uploadProducts = async function(inp){
   const f=inp.files[0]; if(!f) return;
   $('productsMsg').textContent='กำลังอ่านไฟล์…';
@@ -377,7 +385,7 @@ window.uploadProducts = async function(inp){
     if(iB<0){ $('productsMsg').textContent='ไม่พบคอลัมน์ BARCODE'; return; }
     let ok=0, total=0;
     for(let i=1;i<rows.length;i++){
-      const bc=normBc(rows[i][iB]); if(!bc) continue;
+      const bc=scaleKey(normBc(rows[i][iB])); if(!bc) continue;
       total++;
       const o={};
       if(iN>=0&&rows[i][iN]) o.name=String(rows[i][iN]).trim();
