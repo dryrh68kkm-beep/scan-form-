@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+<!-- build: 20260905-0627 -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="theme-color" content="#08743F">
@@ -354,9 +355,9 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
 
 <div class="toast" id="toast"></div>
 
-<script src="firebase-config.js"></script>
-<script src="js/firestore.js"></script>
-<script src="js/export.js"></script>
+<script src="firebase-config.js?v=20260905-0627"></script>
+<script src="js/firestore.js?v=20260905-0627"></script>
+<script src="js/export.js?v=20260905-0627"></script>
 <script>
 const CODES = [
   {c:8 ,t:'8 ขายผิดบาร์โค้ด'},{c:9 ,t:'9 De-pack/Re-pack'},{c:10,t:'10 รับผิดจำนวน'},
@@ -920,6 +921,19 @@ function persist(){
   }catch(e){}
 }
 ['fBranch','fDept','fDate'].forEach(id=>$(id).addEventListener('change', ()=>{ persist(); saveDraft(); }));
+</script>
+
+<script>
+// main ไม่เคยลงทะเบียน service worker เลย — แต่บาง branch พัฒนาที่เคย deploy ทับเว็บนี้ชั่วคราวเคยลงทะเบียนไว้
+// (ก่อนแก้ .github/workflows/pages.yml ให้ main เป็นแหล่ง deploy เดียว) อุปกรณ์ที่เคยเปิดเว็บช่วงนั้นอาจยังมี
+// service worker ค้างอยู่ ทำให้เห็น asset เก่าค้าง (คนละสาเหตุกับที่ทำให้ HTML เก่าค้าง แต่เป็นความเสี่ยงที่ควรเคลียร์)
+// เคลียร์ตัวเองทิ้งแบบเงียบ ๆ ไม่กระทบ UI ผู้ใช้ ไม่เพิ่ม service worker ใหม่
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister())).catch(()=>{});
+}
+if(window.caches && caches.keys){
+  caches.keys().then(keys=>keys.forEach(k=>caches.delete(k))).catch(()=>{});
+}
 </script>
 </body>
 </html>

@@ -144,9 +144,9 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
 <div class="toast" id="toast"></div>
 
 <script src="vendor/jszip.min.js"></script>
-<script src="firebase-config.js"></script>
-<script src="js/firestore.js"></script>
-<script src="js/export.js"></script>
+<script src="firebase-config.js?v=20260905-0627"></script>
+<script src="js/firestore.js?v=20260905-0627"></script>
+<script src="js/export.js?v=20260905-0627"></script>
 <script>
 const $ = id => document.getElementById(id);
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show');
@@ -430,6 +430,17 @@ async function init(){
   setInterval(loadDocs, 4000);
 }
 window.addEventListener('load', init);
+</script>
+
+<script>
+// เคลียร์ service worker/cache ค้าง (ถ้ามี) จาก branch พัฒนาอื่นที่เคย deploy ทับเว็บนี้ชั่วคราว
+// main ไม่เคยลงทะเบียน service worker เอง — ดูรายละเอียดเหตุผลเดียวกันใน index.html
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister())).catch(()=>{});
+}
+if(window.caches && caches.keys){
+  caches.keys().then(keys=>keys.forEach(k=>caches.delete(k))).catch(()=>{});
+}
 </script>
 </body>
 </html>
