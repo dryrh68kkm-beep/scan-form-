@@ -136,6 +136,7 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
       <button class="btn" onclick="saveModalMeta()">บันทึกการแก้ไข</button>
       <span id="downloadBtns" style="display:flex; gap:10px; flex-wrap:wrap"></span>
       <button class="btn ghost" onclick="closeModal()">ปิด</button>
+      <button class="btn danger" onclick="deleteDocument()">ลบเอกสาร</button>
     </div>
     <p class="tag" id="downloadInfo" style="margin-top:12px"></p>
   </div>
@@ -177,7 +178,10 @@ async function loadProductCount(){
 /* ---------- โหลดรายการเอกสาร (poll ทุก 4 วิ ให้ใกล้เคียง real-time — REST API ไม่มี live listener) ---------- */
 async function loadDocs(){
   try{
-    D.docs = await window.fsList('documents');
+    // ซ่อนเอกสารที่ถูก "ลบ" ออกจากลิสต์ — soft-delete เท่านั้น (deleted:true) ไม่ลบแถวจริงใน D1
+    // เหมือนที่ removeEmployee() ทำกับพนักงาน (active:false) เพราะ Worker บล็อก DELETE จริงไว้ตั้งใจ
+    // (เอกสาร LP ควรมีรอยตรวจสอบย้อนหลังได้เสมอ ไม่ควรลบทิ้งถาวรผ่านหน้าเว็บ)
+    D.docs = (await window.fsList('documents')).filter(d=>d.deleted!==true);
     D.docs.sort((a,b)=> (b.updatedAt? new Date(b.updatedAt):0) - (a.updatedAt? new Date(a.updatedAt):0));
     $('syncBadge').textContent='ออนไลน์ · อัปเดตล่าสุด '+new Date().toLocaleTimeString('th-TH');
     $('syncBadge').style.background='var(--tealSoft)'; $('syncBadge').style.color='var(--tealStrong)';
@@ -263,6 +267,18 @@ window.delModalItem = function(i){
   renderModalItems();
 };
 function closeModal(){ $('docModal').classList.remove('show'); D.modalDoc=null; }
+// soft-delete เท่านั้น — Worker บล็อก DELETE จริงไว้ (ดูคอมเมนต์ใน loadDocs) ตั้งฟิลด์ deleted:true
+// แล้วกรองออกจากลิสต์แทน ข้อมูลยังอยู่ใน D1 เผื่อต้องตรวจสอบย้อนหลัง
+window.deleteDocument = async function(){
+  if(!D.modalDoc) return;
+  if(!confirm('ยืนยันลบเอกสาร '+D.modalDoc._id+' ออกจากรายการ?\nจะไม่แสดงในลิสต์อีก แต่ข้อมูลยังเก็บไว้เผื่อตรวจสอบย้อนหลัง')) return;
+  try{
+    await window.fsUpdate('documents', D.modalDoc._id, {deleted:true, deletedAt:new Date()});
+    toast('ลบเอกสาร '+D.modalDoc._id+' แล้ว');
+    closeModal();
+    loadDocs();
+  }catch(e){ toast('ลบไม่สำเร็จ — ตรวจการเชื่อมต่อ'); }
+};
 async function saveModalMeta(){
   if(!D.modalDoc) return;
   try{
