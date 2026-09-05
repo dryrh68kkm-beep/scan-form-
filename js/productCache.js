@@ -1,6 +1,6 @@
 /*
  * แคช Product Master ไว้ใน IndexedDB + เช็ค version กับ Firestore ก่อนโหลดใหม่
- * เป้าหมาย: เปิดแอปปกติ (version ไม่เปลี่ยน) ใช้ Firestore แค่ 1 read (เช็ค _meta/products)
+ * เป้าหมาย: เปิดแอปปกติ (version ไม่เปลี่ยน) ใช้ Firestore แค่ 1 read (เช็ค system/productMaster)
  * ไม่ต้องอ่านทั้ง collection products ซ้ำทุกครั้งที่เปิดหน้า — ดาวน์โหลดเต็มเฉพาะตอน version เปลี่ยนจริง
  * ต้องโหลดไฟล์นี้ "หลัง" js/firestore.js เสมอ (ใช้ window.fsGet/fsList/fsUpsert จากไฟล์นั้น)
  *
@@ -8,15 +8,25 @@
  */
 
 var PDC_DB_NAME = 'lpsf_db', PDC_STORE = 'products', PDC_VERSION_KEY = 'lpsf_products_version';
+var PDC_META_COL = 'system', PDC_META_ID = 'productMaster';
+var PDC_LOCK_NAME = 'lpsf-product-master-sync'; // ชื่อ lock ผ่าน Web Locks API กันหลายแท็บ full-fetch พร้อมกัน
 var PDC_DEV = (function () {
   try { return location.hostname === 'localhost' || location.hostname === '127.0.0.1' || /[?&]debug=1\b/.test(location.search); }
   catch (e) { return false; }
 })();
-window.PDC_STATS = { source: null, version: null, cachedCount: 0, firestoreProductReads: 0, remoteConfirmed: false };
+// สถิติสำหรับ debug เท่านั้น (log ออก console เฉพาะ dev ห้ามโชว์ใน UI จริง) แยกตามหมวดตามที่ขอ
+window.PDC_STATS = {
+  source: null, version: null, cachedCount: 0, remoteConfirmed: false,
+  metadataReads: 0,      // อ่าน system/productMaster
+  productListReads: 0,   // อ่านทั้ง collection products (full sync)
+  productDocReads: 0,    // อ่านทีละ document (scan-miss lookup)
+  realtimeListenersActive: 0, // ไม่มี onSnapshot ในแอปนี้เลย ค่านี้คงที่ 0 เสมอ
+  cacheHits: 0, cacheMisses: 0
+};
 
 function pdcLog() {
   if (!PDC_DEV) return;
-  try { console.log.apply(console, ['[products]'].concat(Array.prototype.slice.call(arguments))); } catch (e) {}
+  try { console.log.apply(console, ['[Firestore Reads Debug]'].concat(Array.prototype.slice.call(arguments))); } catch (e) {}
 }
 
 var pdcDbPromise = null;
@@ -69,6 +79,14 @@ function pdcRowsToMap(rows) {
   rows.forEach(function (it) { map[it.bc] = { name: it.name, price: it.price, unit: it.unit }; });
   return map;
 }
+// เผื่อ browser ไม่มี Web Locks API (Safari เก่า) — รันฟังก์ชันตรง ๆ โดยไม่ล็อก ยังถูกกว่าเดิมอยู่ดี
+// เพราะยังมี in-flight guard ในแท็บเดียวกัน (pdcSyncPromise) กันซ้ำอยู่แล้ว แค่ไม่กันข้ามแท็บ
+function pdcWithLock(fn) {
+  if (window.navigator && navigator.locks && navigator.locks.request) {
+    return navigator.locks.request(PDC_LOCK_NAME, fn);
+  }
+  return fn();
+}
 
 // โหลดจาก IndexedDB อย่างเดียว ไม่แตะ Firestore เลย — ใช้ตอนออฟไลน์
 window.pdcLoadFromCacheOnly = async function () {
@@ -79,7 +97,8 @@ window.pdcLoadFromCacheOnly = async function () {
   return pdcRowsToMap(cached);
 };
 
-// กันเรียกซ้ำพร้อมกัน (เช่น initApp ถูกเรียกซ้ำ) — ถ้ากำลังโหลดอยู่ ให้รอผลเดิม ไม่ยิงซ้ำ
+// กันเรียกซ้ำพร้อมกันในแท็บเดียวกัน (เช่น initApp ถูกเรียกซ้ำ) — ถ้ากำลังโหลดอยู่ ให้รอผลเดิม ไม่ยิงซ้ำ
+// ส่วนกันข้ามแท็บ (เปิด 5 แท็บพร้อมกัน) ใช้ Web Locks API ห่อเฉพาะช่วง full-fetch ด้านล่าง
 var pdcSyncPromise = null;
 window.pdcLoadProductMaster = function () {
   if (pdcSyncPromise) return pdcSyncPromise;
@@ -88,8 +107,8 @@ window.pdcLoadProductMaster = function () {
 
     var remoteVersion = null, remoteOk = false;
     try {
-      var meta = await window.fsGet('_meta', 'products');
-      window.PDC_STATS.firestoreProductReads++;
+      var meta = await window.fsGet(PDC_META_COL, PDC_META_ID);
+      window.PDC_STATS.metadataReads++;
       remoteVersion = (meta && meta.version != null) ? String(meta.version) : null;
       remoteOk = true;
     } catch (e) { /* ออฟไลน์/เข้าไม่ถึง — ใช้ cache เดิมทั้งหมด ไม่ throw ต่อ */ }
@@ -99,15 +118,27 @@ window.pdcLoadProductMaster = function () {
     var needFull = remoteOk && (!cached.length || localVersion !== remoteVersion);
     var source;
     if (needFull) {
-      var rows = await window.fsList('products');
-      window.PDC_STATS.firestoreProductReads += rows.length;
-      var items = rows.map(function (r) { return { bc: String(r._id), name: r.name, price: r.price, unit: r.unit }; });
-      try { await pdcClear(); await window.pdcPutMany(items); } catch (e) {}
-      try { localStorage.setItem(PDC_VERSION_KEY, remoteVersion == null ? '' : remoteVersion); } catch (e) {}
-      cached = items;
-      source = 'Firestore';
+      // ห่อด้วย Web Locks — ถ้าอีกแท็บกำลัง full-fetch อยู่ รอให้เสร็จก่อน แล้วเช็คซ้ำว่ายังต้องโหลดจริงไหม
+      // (แท็บที่ตื่นทีหลังมักจะพบว่า version ตรงกับที่แท็บแรกเพิ่งเขียนไปแล้ว เลยไม่ต้อง fetch ซ้ำ)
+      var result = await pdcWithLock(async function () {
+        var lv2 = null; try { lv2 = localStorage.getItem(PDC_VERSION_KEY); } catch (e) {}
+        var c2 = []; try { c2 = await pdcGetAll(); } catch (e) { c2 = []; }
+        if (c2.length && lv2 === remoteVersion) {
+          return { items: c2, fromNetwork: false };
+        }
+        var rows = await window.fsList('products');
+        window.PDC_STATS.productListReads += rows.length;
+        var items = rows.map(function (r) { return { bc: String(r._id), name: r.name, price: r.price, unit: r.unit }; });
+        try { await pdcClear(); await window.pdcPutMany(items); } catch (e) {}
+        try { localStorage.setItem(PDC_VERSION_KEY, remoteVersion == null ? '' : remoteVersion); } catch (e) {}
+        return { items: items, fromNetwork: true };
+      });
+      cached = result.items;
+      source = result.fromNetwork ? 'Firestore' : 'IndexedDB (อีกแท็บเพิ่งดาวน์โหลดให้แล้ว)';
+      if (result.fromNetwork) window.PDC_STATS.cacheMisses++; else window.PDC_STATS.cacheHits++;
     } else {
       source = 'IndexedDB';
+      window.PDC_STATS.cacheHits++;
     }
 
     window.PDC_STATS.source = source;
@@ -125,8 +156,8 @@ window.pdcLoadProductMaster = function () {
 window.pdcLookupOne = async function (bc) {
   try {
     var doc = await window.fsGet('products', bc);
-    window.PDC_STATS.firestoreProductReads++;
-    if (!doc) { pdcLog('single lookup miss', bc); return null; }
+    window.PDC_STATS.productDocReads++;
+    if (!doc) { window.PDC_STATS.cacheMisses++; pdcLog('single lookup miss', bc); return null; }
     var item = { bc: String(bc), name: doc.name, price: doc.price, unit: doc.unit };
     try { await window.pdcPutMany([item]); } catch (e) {}
     pdcLog('single lookup hit', bc);
@@ -136,11 +167,20 @@ window.pdcLookupOne = async function (bc) {
 
 // เรียกหลังเขียน products สำเร็จ (สแกนเจอสินค้าใหม่ / อัปโหลด CSV) — บอกเครื่องอื่นให้รู้ว่ามีของใหม่
 // เก็บ version ใหม่ไว้ในเครื่องนี้เองด้วยเลย กันเครื่องที่เพิ่งเขียนเองต้องดาวน์โหลดซ้ำจากตัวเอง
-window.pdcBumpVersion = async function () {
+// totalProducts: จำนวนสินค้าทั้งหมดหลังแก้ (optional) — เก็บไว้ใน metadata ตามที่ขอ ไม่ผูกกับ logic เช็ค version
+window.pdcBumpVersion = async function (totalProducts) {
   var v = Date.now();
   try {
-    await window.fsUpsert('_meta', 'products', { version: v });
+    var fields = { version: v, updatedAt: new Date() };
+    if (totalProducts != null) fields.totalProducts = totalProducts;
+    await window.fsUpsert(PDC_META_COL, PDC_META_ID, fields);
     try { localStorage.setItem(PDC_VERSION_KEY, String(v)); } catch (e) {}
   } catch (e) { pdcLog('bump version failed (offline?)', e); }
   return v;
+};
+
+// เผื่อ debug จาก console: window.PDC_STATS อ่านได้ตรง ๆ, หรือเรียกฟังก์ชันนี้เพื่อ print สรุปสวย ๆ
+window.pdcPrintStats = function () {
+  if (!PDC_DEV) return;
+  console.table(window.PDC_STATS);
 };

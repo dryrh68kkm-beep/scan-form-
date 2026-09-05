@@ -581,7 +581,7 @@ async function loadMaster(inp){
       try{ await window.fsUpsert('products', bc, Object.assign({updatedAt:new Date()}, ov[bc])); ok++; }
       catch(e){ /* เครือข่ายมีปัญหา — เหลือใน cache เครื่องนี้แล้ว ผู้ใช้อัปโหลดซ้ำได้ภายหลัง */ }
     }
-    if(ok) try{ await window.pdcBumpVersion(); }catch(e){} // บอกเครื่องอื่นว่า Product Master เปลี่ยน
+    if(ok) try{ await window.pdcBumpVersion(Object.keys(S.master).length); }catch(e){} // บอกเครื่องอื่นว่า Product Master เปลี่ยน
     toast(ok===n ? 'ซิงก์ขึ้นฐานข้อมูลกลางครบ '+ok+' รายการ' : 'ซิงก์ได้ '+ok+'/'+n+' รายการ (ที่เหลือ ลองอัปโหลดใหม่เมื่อเน็ตพร้อม)');
   }catch(e){ console.error(e); toast('อ่านไฟล์ไม่สำเร็จ'); }
 }
