@@ -311,18 +311,22 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
     <div id="adjFields">
       <div class="field">
         <label class="fld">Adjust code</label>
-        <div class="chips" id="codeChips"></div>
-        <input id="fCode" type="number" inputmode="numeric" placeholder="หรือพิมพ์โค้ดเอง" style="margin-top:10px">
+        <select id="fCodeSel"></select>
+        <input id="fCode" type="number" inputmode="numeric" placeholder="พิมพ์โค้ดเอง" style="margin-top:10px; display:none">
       </div>
       <div class="row2">
         <div class="field"><label class="fld">จำนวนชิ้น</label>
-          <input id="fQty" type="number" inputmode="numeric" placeholder="เช่น -1"></div>
+          <div style="display:flex; gap:8px">
+            <button type="button" class="btn ghost" id="qtySignBtn" style="flex:0 0 52px; padding:0; font-size:20px; font-weight:700" onclick="toggleQtySign()">±</button>
+            <input id="fQty" type="number" inputmode="numeric" placeholder="เช่น 1" style="flex:1">
+          </div>
+        </div>
         <div class="field"><label class="fld">วันหมดอายุ</label><input id="fExp" type="date"></div>
       </div>
       <div class="field">
         <label class="fld">เหตุผล</label>
-        <div class="chips" id="reasonChips"></div>
-        <input id="fReason" placeholder="หรือพิมพ์เอง" style="margin-top:10px">
+        <select id="fReasonSel"></select>
+        <input id="fReason" placeholder="พิมพ์เหตุผลเอง" style="margin-top:10px; display:none">
       </div>
     </div>
 
@@ -776,22 +780,46 @@ function manualEntry(){
 function chip(txt,on,fn,teal){ const b=document.createElement('div');
   b.className='chip'+(on?' on':'')+(teal?' teal':''); b.textContent=txt; b.onclick=fn; return b; }
 function buildChips(){
-  const cc=$('codeChips'); cc.innerHTML='';
-  CODES.forEach(o=>cc.appendChild(chip(o.t, String($('fCode').value)===String(o.c), ()=>{
-    $('fCode').value=o.c;
-    if(!$('fReason').value){
-      const r = o.c===25?'หมดอายุ':o.c===21?'ชำรุด/เน่าเสีย':o.c===8?'ขายผิดบาร์โค้ด':
-                o.c===22?'ขาดส่งจาก DC':o.c===23?'ผลต่างตรวจนับ':'';
-      if(r) $('fReason').value=r;
-    }
-    if(!$('fQty').value && [13,21,22,23,25].indexOf(o.c)>=0) $('fQty').value='-1';
-    buildChips();
-  })));
-  const rc=$('reasonChips'); rc.innerHTML='';
-  REASONS.forEach(r=>rc.appendChild(chip(r, $('fReason').value===r, ()=>{ $('fReason').value=r; buildChips(); })));
+  const curCode=$('fCode').value, knownCode=CODES.some(o=>String(o.c)===String(curCode));
+  $('fCodeSel').innerHTML = '<option value="">เลือก Adjust code</option>' +
+    CODES.map(o=>'<option value="'+o.c+'"'+(String(curCode)===String(o.c)?' selected':'')+'>'+o.t+'</option>').join('') +
+    '<option value="other"'+(curCode&&!knownCode?' selected':'')+'>อื่นๆ (พิมพ์เอง)</option>';
+  $('fCode').style.display = ($('fCodeSel').value==='other')?'block':'none';
+
+  const curReason=$('fReason').value, knownReason=REASONS.indexOf(curReason)>=0;
+  $('fReasonSel').innerHTML = '<option value="">เลือกเหตุผล</option>' +
+    REASONS.map(r=>'<option value="'+r+'"'+(curReason===r?' selected':'')+'>'+r+'</option>').join('') +
+    '<option value="other"'+(curReason&&!knownReason?' selected':'')+'>อื่นๆ (พิมพ์เอง)</option>';
+  $('fReason').style.display = ($('fReasonSel').value==='other')?'block':'none';
+
   const pc=$('pctChips'); pc.innerHTML='';
   PCTS.forEach(p=>pc.appendChild(chip(p+'%', Number($('fPct').value)===p, ()=>{
     $('fPct').value=p; buildChips(); calcPrice(); }, true)));
+}
+function onCodeSelChange(){
+  const v=$('fCodeSel').value;
+  if(v==='other'){ $('fCode').style.display='block'; $('fCode').value=''; $('fCode').focus(); return; }
+  $('fCode').style.display='none';
+  $('fCode').value=v;
+  const c=Number(v);
+  if(!$('fReason').value){
+    const r = c===25?'หมดอายุ':c===21?'ชำรุด/เน่าเสีย':c===8?'ขายผิดบาร์โค้ด':
+              c===22?'ขาดส่งจาก DC':c===23?'ผลต่างตรวจนับ':'';
+    if(r){ $('fReason').value=r; buildChips(); }
+  }
+  if(!$('fQty').value && [13,21,22,23,25].indexOf(c)>=0) $('fQty').value='-1';
+}
+function onReasonSelChange(){
+  const v=$('fReasonSel').value;
+  if(v==='other'){ $('fReason').style.display='block'; $('fReason').value=''; $('fReason').focus(); return; }
+  $('fReason').style.display='none';
+  $('fReason').value=v;
+}
+// ปุ่ม ± หน้าช่องจำนวนชิ้น — สลับเครื่องหมายของตัวเลขที่กรอกไว้ ไม่ต้องสลับแป้นพิมพ์เพื่อพิมพ์ "-" เอง
+function toggleQtySign(){
+  const n=Number($('fQty').value);
+  if(!n) return;
+  $('fQty').value=-n;
 }
 function calcPrice(){
   const p=Number($('fPrice').value), pct=Number($('fPct').value);
@@ -799,7 +827,9 @@ function calcPrice(){
 }
 $('fPrice').addEventListener('input', calcPrice);
 $('fPct').addEventListener('input', ()=>{ buildChips(); calcPrice(); });
+$('fCodeSel').addEventListener('change', onCodeSelChange);
 $('fCode').addEventListener('input', buildChips);
+$('fReasonSel').addEventListener('change', onReasonSelChange);
 $('fReason').addEventListener('input', buildChips);
 
 function openSheet(bc, editIdx, weightKg){
