@@ -464,7 +464,13 @@ window.checkEmployee = async function(){
     $('loginMsg').textContent='';
     await afterLogin();
   }catch(e){
-    $('loginMsg').textContent='เชื่อมต่อไม่ได้ — ลองใหม่เมื่อมีอินเทอร์เน็ต (ต้อง login ผ่านอย่างน้อย 1 ครั้งก่อนใช้ออฟไลน์)';
+    // แยกข้อความ: "เน็ตหลุดจริง" (fetch ยิงไม่ถึงเซิร์ฟเวอร์เลย) กับ "เซิร์ฟเวอร์ปฏิเสธ" (เช่น Firestore
+    // Security Rules ไม่อนุญาต) เพราะสองกรณีนี้วิธีแก้ต่างกันคนละเรื่อง — ปนกันจะทำให้เข้าใจผิดว่าเน็ตหลุด
+    // ทั้งที่จริงต้องไปแก้ Rules บน Firebase Console (ดู firestore.rules)
+    const isNetworkDown = e instanceof TypeError || /failed to fetch|networkerror/i.test(e.message||'');
+    $('loginMsg').textContent = isNetworkDown
+      ? 'เชื่อมต่อไม่ได้ — ลองใหม่เมื่อมีอินเทอร์เน็ต (ต้อง login ผ่านอย่างน้อย 1 ครั้งก่อนใช้ออฟไลน์)'
+      : 'ระบบส่วนกลางปฏิเสธคำขอ (' + (e.message||'ไม่ทราบสาเหตุ') + ') — แจ้งผู้ดูแลให้ตรวจ Firestore Security Rules';
   }
 };
 window.logoutEmployee = function(){
@@ -496,15 +502,18 @@ function docTimeStamp(){
 async function initApp(){
   try{ await window.fsAutoLogin(); S.online=true; setSyncBadge('online'); }
   catch(e){ S.online=false; setSyncBadge('offline'); }
+  let productsSynced=false;
   if(S.online){
-    try{ await loadProductsFromFirestore(); }
+    try{ await loadProductsFromFirestore(); productsSynced=true; }
     catch(e){ loadProductsFromCache(); }
   }else{
     loadProductsFromCache();
   }
   S.ready=true;
+  // ใช้ productsSynced (ไม่ใช่ S.online) ตัดสินข้อความ — login (auth) สำเร็จไม่ได้แปลว่าดึงข้อมูลสินค้าสำเร็จ
+  // เช่น กรณี Firestore Security Rules ปฏิเสธการอ่าน ต้องบอกผู้ใช้ตามจริงว่าใช้ข้อมูลเก่าในเครื่องอยู่
   $('masterInfo').textContent=Object.keys(S.master).length.toLocaleString()+' รายการ'+
-    (S.online?' (ซิงก์ล่าสุดจากส่วนกลาง)':' (โหมดออฟไลน์ — ใช้ข้อมูลที่เคยซิงก์ไว้ในเครื่องนี้)');
+    (productsSynced?' (ซิงก์ล่าสุดจากส่วนกลาง)':' (โหมดออฟไลน์ — ใช้ข้อมูลที่เคยซิงก์ไว้ในเครื่องนี้)');
   $('fDate').value=new Date().toISOString().slice(0,10);
   buildChips();
   migrateLegacyPending();
