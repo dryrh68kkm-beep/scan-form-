@@ -875,9 +875,13 @@ function openSheet(bc, editIdx, weightKg){
   }
   buildChips(); calcPrice();
   S.pending=code;
+  // เก็บน้ำหนักไว้ใช้ตอนบันทึก — ถ้าสินค้าชั่งน้ำหนักยังไม่เคยมีใน master ราคาที่กรอกจะเป็นราคารวม
+  // ของถุงนี้เท่านั้น (ไม่ใช่ราคาต่อกก.) ต้องหารน้ำหนักออกก่อนเก็บเป็นราคากลาง ไม่งั้นสแกนถุงอื่นน้ำหนัก
+  // ต่างกันครั้งต่อไปจะได้ราคาผิด (เอาราคารวมของถุงแรกไปคูณน้ำหนักถุงใหม่)
+  S.pendingWeightKg = (S.edit==null) ? (weightKg || null) : null;
   $('sheet').classList.add('show');
 }
-function closeSheet(){ $('sheet').classList.remove('show'); S.pending=null; S.edit=null;
+function closeSheet(){ $('sheet').classList.remove('show'); S.pending=null; S.edit=null; S.pendingWeightKg=null;
   if(S.view==='scan'&&!S.camOn) startCam(); }
 function saveItem(){
   if(S.locked){ toast('เอกสารนี้ถูกล็อกแล้ว แก้ไขไม่ได้'); closeSheet(); return; }
@@ -911,7 +915,12 @@ function saveItem(){
     }
   }
   if(!m){ // ไม่พบบาร์โค้ดในฐานข้อมูล -> เพิ่มเข้าฐานข้อมูลสินค้ากลางทันที (พร้อมราคา/หน่วยถ้ามี เช่นจาก RTC)
-    const newPrice=S.mode==='RTC'?o.price:undefined, newUnit=S.mode==='RTC'?o.unit:undefined;
+    // สินค้าชั่งน้ำหนัก: o.price คือราคารวมของถุงนี้ ต้องหารน้ำหนักออกก่อนเก็บเป็นราคาต่อกก. ใน master
+    // ไม่งั้นสแกนถุงเดียวกัน (PLU เดียวกัน) แต่คนละน้ำหนักครั้งต่อไปจะได้ราคาผิด
+    const newPrice=S.mode==='RTC'
+      ? (S.pendingWeightKg ? Math.round((o.price/S.pendingWeightKg)*100)/100 : o.price)
+      : undefined;
+    const newUnit=S.mode==='RTC'?o.unit:undefined;
     S.master[bc]=Object.assign({name}, newPrice?{price:newPrice}:{}, newUnit?{unit:newUnit}:{});
     queueProduct(bc,name,newPrice,newUnit);
   }
