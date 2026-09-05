@@ -700,9 +700,19 @@ var MODE_TILE_TAP_DELAY=130;
 function pickMode(m){
   if(!S.employee){ toast('กรุณาเข้าสู่ระบบก่อน'); return; }
   if(S.docId&&S.mode){
-    if(m!==S.mode) toast('มีเอกสาร '+S.mode+' ค้างอยู่ — กรุณาบันทึกและจบเอกสารก่อน');
-    setTimeout(()=>applyModeUI(S.mode), MODE_TILE_TAP_DELAY);
-    return;
+    if(m!==S.mode){
+      if(S.items[S.mode].length===0){
+        // เอกสารเดิมยังไม่มีรายการเลย — ไม่มีอะไรจะเสีย ยกเลิกอัตโนมัติแล้วเปิดโหมดใหม่แทนที่จะดักผู้ใช้ไว้
+        S.docId=null; S.locked=false;
+      }else{
+        toast('มีเอกสาร '+S.mode+' ค้างอยู่ — กรุณาบันทึกและจบเอกสารก่อน');
+        setTimeout(()=>applyModeUI(S.mode), MODE_TILE_TAP_DELAY);
+        return;
+      }
+    }else{
+      setTimeout(()=>applyModeUI(S.mode), MODE_TILE_TAP_DELAY);
+      return;
+    }
   }
   S.docId=m+'-'+S.employee.code+'-'+docTimeStamp()+'-'+Math.random().toString(36).slice(2,5);
   S.items[m]=[]; S.locked=false;
