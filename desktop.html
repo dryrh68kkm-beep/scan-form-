@@ -158,8 +158,8 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
 <div class="toast" id="toast"></div>
 
 <script src="vendor/jszip.min.js"></script>
-<script src="cf-config.js"></script>
-<script src="js/cfdb.js"></script>
+<script src="firebase-config.js"></script>
+<script src="js/firestore.js"></script>
 <script src="js/export.js"></script>
 <script>
 const $ = id => document.getElementById(id);
@@ -386,6 +386,9 @@ window.uploadProducts = async function(inp){
       try{ await window.fsUpsert('products', bc, o); ok++; }catch(e){}
       if(total%50===0) $('productsMsg').textContent='กำลังอัปโหลด… '+ok+'/'+total;
     }
+    // บอกมือถือทุกเครื่องผ่าน _meta/products.version ว่า Product Master เปลี่ยน — เครื่องที่แคชไว้แล้ว
+    // (js/productCache.js) จะดาวน์โหลดใหม่รอบต่อไปที่เปิดแอป แทนที่จะอ่านทั้ง collection ทุกครั้ง
+    if(ok) try{ await window.fsUpsert('_meta', 'products', {version: Date.now()}); }catch(e){}
     $('productsMsg').textContent='อัปโหลดสำเร็จ '+ok+'/'+total+' รายการ';
     toast('อัปเดตฐานข้อมูลสินค้าแล้ว');
   }catch(e){ console.error(e); $('productsMsg').textContent='อ่านไฟล์ไม่สำเร็จ'; }

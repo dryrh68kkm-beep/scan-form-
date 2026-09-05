@@ -292,8 +292,9 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
 
 <div class="toast" id="toast"></div>
 
-<script src="cf-config.js"></script>
-<script src="js/cfdb.js"></script>
+<script src="firebase-config.js"></script>
+<script src="js/firestore.js"></script>
+<script src="js/productCache.js"></script>
 <script src="js/export.js"></script>
 <script>
 const CODES = [
@@ -341,15 +342,13 @@ function setSyncBadge(state){
   }
   else { b.textContent='ออฟไลน์'; b.style.background='#FDF4E5'; b.style.color='var(--warn)'; }
 }
-function loadProductsFromCache(){
-  try{ S.master = JSON.parse(localStorage.getItem('lpsf_products_cache')||'{}'); }catch(e){ S.master={}; }
+// ย้ายจาก localStorage เดี่ยว ๆ ไป IndexedDB + version-check (js/productCache.js) — ห้ามอ่านทั้ง
+// collection products ซ้ำทุกครั้งที่เปิดหน้า อ่านแค่ document version 1 ครั้ง ถ้าไม่เปลี่ยนใช้ cache เดิม
+async function loadProductsFromCache(){
+  S.master = await window.pdcLoadFromCacheOnly();
 }
 async function loadProductsFromFirestore(){
-  const rows = await window.fsList('products');
-  const map={};
-  rows.forEach(r=>{ map[r._id]={name:r.name, price:r.price, unit:r.unit}; });
-  S.master = map;
-  try{ localStorage.setItem('lpsf_products_cache', JSON.stringify(map)); }catch(e){}
+  S.master = await window.pdcLoadProductMaster();
 }
 
 /* ---------- local draft + finished queue ---------- */
@@ -435,15 +434,20 @@ function queueProduct(bc,name,price,unit){
 async function tryFlushProducts(){
   let q; try{ q=JSON.parse(localStorage.getItem('lpsf_pending_products')||'[]'); }catch(e){ q=[]; }
   if(!q.length) return;
-  const rest=[];
+  const rest=[], flushed=[];
   for(const p of q){
     const data={name:p.name, updatedAt:new Date()};
     if(p.price) data.price=p.price;
     if(p.unit) data.unit=p.unit;
-    try{ await window.fsUpsert('products',p.bc,data); }
+    try{ await window.fsUpsert('products',p.bc,data); flushed.push({bc:p.bc,name:p.name,price:p.price,unit:p.unit}); }
     catch(e){ rest.push(p); }
   }
   try{ localStorage.setItem('lpsf_pending_products', JSON.stringify(rest)); }catch(e){}
+  if(flushed.length){
+    // เขียน products สำเร็จ -> อัปเดต cache เครื่องนี้ + บอกเครื่องอื่นผ่าน version ว่ามีของใหม่
+    try{ await window.pdcPutMany(flushed); }catch(e){}
+    try{ await window.pdcBumpVersion(); }catch(e){}
+  }
 }
 window.addEventListener('online', ()=>{ trySyncFinishedDocs(); tryFlushProducts(); });
 setInterval(()=>{ trySyncFinishedDocs(); tryFlushProducts(); }, 8000);
@@ -504,10 +508,12 @@ async function initApp(){
   catch(e){ S.online=false; setSyncBadge('offline'); }
   let productsSynced=false;
   if(S.online){
-    try{ await loadProductsFromFirestore(); productsSynced=true; }
-    catch(e){ loadProductsFromCache(); }
+    // productsSynced สะท้อนว่าเช็ค version กับ Firestore ได้จริงไหม (ไม่ใช่แค่ดาวน์โหลดสำเร็จ) —
+    // pdcLoadProductMaster ไม่ throw เวลาออฟไลน์ (fallback ไป cache เงียบ ๆ) เลยต้องเช็ค remoteConfirmed เอง
+    try{ await loadProductsFromFirestore(); productsSynced=window.PDC_STATS.remoteConfirmed; }
+    catch(e){ await loadProductsFromCache(); }
   }else{
-    loadProductsFromCache();
+    await loadProductsFromCache();
   }
   S.ready=true;
   // ใช้ productsSynced (ไม่ใช่ S.online) ตัดสินข้อความ — login (auth) สำเร็จไม่ได้แปลว่าดึงข้อมูลสินค้าสำเร็จ
@@ -566,15 +572,16 @@ async function loadMaster(inp){
       if(iU>=0&&rows[i][iU]) o.unit=String(rows[i][iU]).trim();
       ov[bc]=o; n++;
     }
-    try{ localStorage.setItem('lpsf_products_cache', JSON.stringify(S.master)); }catch(e){}
+    try{ await window.pdcPutMany(Object.keys(ov).map(bc=>Object.assign({bc}, ov[bc]))); }catch(e){}
     $('masterInfo').textContent = Object.keys(S.master).length.toLocaleString()+
       ' รายการ (อัปเดต '+n.toLocaleString()+(iP>=0?' · มีราคา':'')+')';
     toast('อัปเดตรายการสินค้าในเครื่องแล้ว กำลังซิงก์ขึ้นฐานข้อมูลกลาง…');
     let ok=0;
     for(const bc in ov){
       try{ await window.fsUpsert('products', bc, Object.assign({updatedAt:new Date()}, ov[bc])); ok++; }
-      catch(e){ /* เครือข่ายมีปัญหา — เหลือใน localStorage แล้ว ผู้ใช้อัปโหลดซ้ำได้ภายหลัง */ }
+      catch(e){ /* เครือข่ายมีปัญหา — เหลือใน cache เครื่องนี้แล้ว ผู้ใช้อัปโหลดซ้ำได้ภายหลัง */ }
     }
+    if(ok) try{ await window.pdcBumpVersion(); }catch(e){} // บอกเครื่องอื่นว่า Product Master เปลี่ยน
     toast(ok===n ? 'ซิงก์ขึ้นฐานข้อมูลกลางครบ '+ok+' รายการ' : 'ซิงก์ได้ '+ok+'/'+n+' รายการ (ที่เหลือ ลองอัปโหลดใหม่เมื่อเน็ตพร้อม)');
   }catch(e){ console.error(e); toast('อ่านไฟล์ไม่สำเร็จ'); }
 }
@@ -686,6 +693,16 @@ function openSheet(bc, editIdx){
   const it = S.edit!=null ? S.items[S.mode][S.edit] : null;
   const code = bc || (it&&it.bc) || '';
   const m = S.master[code];
+  // ไม่เจอใน cache -> เช็ค Firestore เฉพาะบาร์โค้ดนี้ 1 รายการเบื้องหลัง (ไม่รอ ไม่บล็อกการเปิดชีท
+  // ให้สแกนเร็วเหมือนเดิม) ถ้าเจอค่อยรีเฟรชชีทให้ถ้ายังเปิดอยู่ที่บาร์โค้ดเดิมและผู้ใช้ยังไม่ได้พิมพ์เอง
+  if(!m && code && S.online){
+    window.pdcLookupOne(code).then(item=>{
+      if(item && !S.master[code]){
+        S.master[code]=item;
+        if(S.pending===code && $('sheet').classList.contains('show') && !$('fName').value.trim()) openSheet(code, S.edit);
+      }
+    });
+  }
   $('shTitle').textContent = S.edit!=null?'แก้ไขรายการ':'เพิ่มรายการ';
   $('shBc').textContent = code;
   $('shName').textContent = (it&&it.name)||(m&&m.name)||'ไม่พบในรายการสินค้า';
