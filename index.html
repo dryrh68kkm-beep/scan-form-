@@ -379,6 +379,14 @@ function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show');
   clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove('show'),1900); }
 // ห้ามตัดเลข 0 นำหน้าออก — บาร์โค้ดจริง (เช่น EAN-13) มีความหมายทุกหลักรวมถึง 0 นำหน้า
 function normBc(v){ return String(v==null?'':v).replace(/\D/g,''); }
+// บาร์โค้ดสินค้าชั่งน้ำหนัก (Fresh Food) จากเครื่องชั่งเป็นเลข 18 หลัก ขึ้นต้นด้วย 2 และฝังน้ำหนัก/ราคาไว้ในตัวเลข
+// เอง — คนละแพ็คของสินค้าตัวเดียวกันจะได้บาร์โค้ด "ไม่เหมือนกัน" ทุกครั้งที่ชั่ง ทำให้จับคู่กับฐานข้อมูล
+// ด้วยบาร์โค้ดเต็มไม่ได้เลยสักครั้ง ต้องตัดเอาแค่รหัสสินค้า (PLU) 5 หลักตรงกลาง (หลักที่ 2-6) มาใช้แทน —
+// ยืนยันตำแหน่งจากการสแกนจริง 2 ครั้งของสินค้าชิ้นเดียวกัน (รหัส 11278):
+//   211278008900001447
+//   211278010275001663
+// 7 หลักแรก "2112780" ตรงกันเป๊ะทุกครั้ง ("2"+PLU 5 หลัก+"0") หลักที่ 8 เป็นต้นไปเปลี่ยนตามน้ำหนัก/ราคา
+function scaleKey(bc){ return /^2\d{17}$/.test(bc) ? bc.slice(1,6) : bc; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function thDate(iso){ if(!iso) return ''; const p=iso.split('-'); return p.length===3? p[2]+'/'+p[1]+'/'+p[0] : iso; }
 function roundUpPrice(price,pct){ return Math.ceil(Number((price-(price*pct)).toFixed(6))); }
@@ -729,9 +737,9 @@ function onScan(txt){
   if(txt===S.lastScan.code && now-S.lastScan.t<2000) return;
   S.lastScan={code:txt,t:now};
   if(navigator.vibrate) navigator.vibrate(45);
-  openSheet(normBc(txt));
+  openSheet(scaleKey(normBc(txt)));
 }
-function manualEntry(){ const v=prompt('พิมพ์บาร์โค้ด'); if(v) openSheet(normBc(v)); }
+function manualEntry(){ const v=prompt('พิมพ์บาร์โค้ด'); if(v) openSheet(scaleKey(normBc(v))); }
 
 /* ---------- item sheet ---------- */
 function chip(txt,on,fn,teal){ const b=document.createElement('div');
