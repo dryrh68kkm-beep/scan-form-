@@ -94,7 +94,10 @@ window.buildExportXlsx = async function (mode, items, meta, page) {
 
   // ใช้สำเนา zip ใหม่ทุกครั้ง ไม่แก้ต้นฉบับที่ cache ไว้ (เผื่อ export ซ้ำ/export หลายเอกสารต่อเนื่อง)
   const zipCopy = await JSZip.loadAsync(await zip.generateAsync({ type: 'arraybuffer' }));
-  zipCopy.file(EXPORT_SHEET_PATH, xml);
+  // createFolders:false — ไม่งั้น JSZip จะแทรก entry โฟลเดอร์ (xl/, xl/worksheets/) เพิ่มเข้าไปในซิป
+  // ที่ไม่มีอยู่ในเทมเพลตต้นฉบับและไม่ได้ประกาศใน [Content_Types].xml ทำให้ Excel มองว่าไฟล์เสียโครงสร้าง
+  // และขึ้น "[Repaired]" ตอนเปิดไฟล์
+  zipCopy.file(EXPORT_SHEET_PATH, xml, { createFolders: false });
   const out = await zipCopy.generateAsync({ type: 'blob',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const docPart = meta.docId ? (meta.docId + '_') : '';
