@@ -95,6 +95,8 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
       <div class="filebtn"><button class="btn ghost" type="button">เลือกไฟล์ CSV…</button>
         <input type="file" accept=".csv,text/csv" onchange="uploadProducts(this)"></div>
       <p id="productsMsg" style="margin-top:10px;color:var(--sec);font-size:13px"></p>
+      <hr class="d">
+      <p class="tag" id="productCount">กำลังตรวจนับฐานข้อมูลสินค้า…</p>
     </div>
     <div class="card">
       <h2>รายชื่อพนักงาน</h2>
@@ -159,7 +161,18 @@ function switchTab(t){
   $('tabAdmin').classList.toggle('on', t==='admin');
   $('viewDocs').style.display = t==='docs'?'block':'none';
   $('viewAdmin').style.display = t==='admin'?'block':'none';
-  if(t==='admin') loadEmployees();
+  if(t==='admin'){ loadEmployees(); loadProductCount(); }
+}
+// นับจำนวนสินค้าในฐานข้อมูลกลางสดๆ จาก Firestore ทุกครั้งที่เข้าแท็บผู้ดูแลระบบ/อัปโหลดเสร็จ —
+// ต่างจาก #productsMsg (ข้อความแจ้งผลอัปโหลดที่หายไปตอน refresh เพราะเป็นแค่สถานะชั่วคราวในหน่วยความจำ)
+// ตัวเลขนี้ดึงจากฐานข้อมูลจริงเสมอ จึงยืนยันได้ว่าอัปโหลดที่ผ่านมาไม่ได้หายไปไหน
+async function loadProductCount(){
+  try{
+    const products = await window.fsList('products');
+    $('productCount').textContent = 'ฐานข้อมูลสินค้าทั้งหมดในระบบ: '+products.length.toLocaleString()+' รายการ';
+  }catch(e){
+    $('productCount').textContent = 'ตรวจนับฐานข้อมูลสินค้าไม่สำเร็จ — ตรวจการเชื่อมต่อ';
+  }
 }
 /* ---------- โหลดรายการเอกสาร (poll ทุก 4 วิ ให้ใกล้เคียง real-time — REST API ไม่มี live listener) ---------- */
 async function loadDocs(){
@@ -376,6 +389,7 @@ window.uploadProducts = async function(inp){
     }
     $('productsMsg').textContent='อัปโหลดสำเร็จ '+ok+'/'+total+' รายการ';
     toast('อัปเดตฐานข้อมูลสินค้าแล้ว');
+    loadProductCount();
   }catch(e){ console.error(e); $('productsMsg').textContent='อ่านไฟล์ไม่สำเร็จ'; }
 };
 window.uploadEmployees = async function(inp){
