@@ -549,20 +549,20 @@ function paintHomeIdentity(){
 }
 async function afterLogin(){
   $('empInfo').textContent='พนักงาน: '+S.employee.name+' ('+S.employee.code+')';
-  paintHomeIdentity();
   const draft=loadDraft(S.employee.code);
   $('vLogin').style.display='none';
+  // ล็อกอินแล้วให้ไปหน้า Home เสมอ ไม่พาเข้าหน้าสแกนเอกสารต่อทันที — แค่คืนค่าสถานะเอกสารค้างไว้
+  // (S.docId/S.mode/S.items/ฟิลด์หัวฟอร์ม) ให้ pickMode() ใช้ต่อได้เมื่อผู้ใช้กดเลือกโหมดเองจาก Home
   if(draft&&draft.id&&draft.doc){
     const openDoc=draft.doc;
-    S.docId=draft.id; S.locked=false;
+    S.docId=draft.id; S.mode=openDoc.mode; S.locked=false;
     S.items[openDoc.mode]=openDoc.items||[];
     $('fBranch').value=openDoc.branch||''; $('fDept').value=openDoc.dept||'';
     $('fDate').value=openDoc.date||new Date().toISOString().slice(0,10);
-    applyModeUI(openDoc.mode);
-    toast('พบเอกสารค้างอยู่ '+S.docId+' — กลับมาทำต่อ');
-  }else{
-    $('vHome').style.display='block';
+    toast('พบเอกสารค้างอยู่ '+S.docId+' — แตะ '+openDoc.mode+' เพื่อทำต่อ');
   }
+  $('vHome').style.display='block';
+  paintHomeIdentity();
 }
 // รูปแบบย่อ YYMMDDHHmm (ปี 2 หลัก ตัดวินาทีออก) — ให้เลขที่เอกสารสั้นลง อ่าน/พิมพ์ง่ายขึ้น
 // ยังกันชื่อซ้ำได้ด้วยเลขสุ่มต่อท้ายที่จุดสร้าง S.docId (ดู pickMode) เผื่อพนักงานคนเดียวกันสร้างเอกสาร 2 ใบในนาทีเดียวกัน
