@@ -1,6 +1,6 @@
-name = "scan-form-lp-api"
+name = "scan-form"
 main = "worker.js"
-compatibility_date = "2026-01-01"
+compatibility_date = "2026-09-03"
 
 [[d1_databases]]
 binding = "DB"
