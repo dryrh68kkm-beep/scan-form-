@@ -1,0 +1,17 @@
+{
+  // Root-level copy of cf-worker/wrangler.toml — เพื่อให้ Cloudflare Workers Build (Git integration)
+  // หาไฟล์ config เจอเสมอไม่ว่า "Root directory" ที่ตั้งค่าไว้ใน dashboard ของแต่ละ deployment
+  // (Production vs Preview) จะเป็นค่าอะไร เพราะที่ผ่านมา build ของ Preview deployment fail
+  // (Missing entry-point) เนื่องจากรันที่ root ของ repo ซึ่งไม่มีไฟล์ config ให้เจอ
+  // ต้องแก้ทั้งสองไฟล์คู่กันถ้ามีการเปลี่ยน Worker name / D1 binding ในอนาคต
+  "name": "scan-form",
+  "main": "cf-worker/worker.js",
+  "compatibility_date": "2026-09-03",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "scan-form-lp",
+      "database_id": "10f0ba98-42f4-436e-a7ae-ff98d6fb0d60"
+    }
+  ]
+}
