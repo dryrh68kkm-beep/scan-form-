@@ -283,7 +283,19 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
     <h2>ข้อมูลหัวฟอร์ม</h2>
     <div class="field"><label class="fld">สาขา</label><input id="fBranch" placeholder="ไทรน้อย 11252"></div>
     <div class="row2">
-      <div class="field"><label class="fld">แผนก</label><input id="fDept" placeholder="Dry Food"></div>
+      <div class="field"><label class="fld">แผนก</label>
+        <select id="fDept">
+          <option value="">เลือกแผนก</option>
+          <option value="0510 BUTCHERY">0510 BUTCHERY</option>
+          <option value="0520 SEAFOOD">0520 SEAFOOD</option>
+          <option value="0530 PRODUCE">0530 PRODUCE</option>
+          <option value="0540 DELICATESSEN">0540 DELICATESSEN</option>
+          <option value="0550 BAKERY">0550 BAKERY</option>
+          <option value="0560 PERISHABLE">0560 PERISHABLE</option>
+          <option value="0562 PERISHABLE_SME">0562 PERISHABLE_SME</option>
+          <option value="0570 FROZEN">0570 FROZEN</option>
+        </select>
+      </div>
       <div class="field"><label class="fld">วันที่</label><input id="fDate" type="date"></div>
     </div>
   </div>
@@ -318,7 +330,7 @@ button.mode-tile:focus-visible{outline:3px solid rgba(22,155,117,.24);outline-of
         <div class="field"><label class="fld">จำนวนชิ้น</label>
           <div style="display:flex; gap:8px">
             <button type="button" class="btn ghost" id="qtySignBtn" style="flex:0 0 52px; padding:0; font-size:20px; font-weight:700" onclick="toggleQtySign()">±</button>
-            <input id="fQty" type="number" inputmode="numeric" placeholder="เช่น 1" style="flex:1">
+            <input id="fQty" type="number" inputmode="decimal" step="any" placeholder="เช่น 1.5" style="flex:1">
           </div>
         </div>
         <div class="field"><label class="fld">วันหมดอายุ</label><input id="fExp" type="date"></div>

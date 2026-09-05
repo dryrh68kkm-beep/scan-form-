@@ -68,6 +68,8 @@ input,select{width:100%; padding:10px 12px; border:1px solid var(--border); bord
 .filebtn input[type=file]{position:absolute; inset:0; opacity:0; width:100%; height:100%}
 .cellIn{width:100%; padding:6px 8px; font-size:13px; min-width:60px}
 td.bcCell{color:var(--muted); font-variant-numeric:tabular-nums}
+.cellPct{display:flex; align-items:center; gap:4px; white-space:nowrap}
+.cellPct .cellIn{width:56px; min-width:0}
 hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
 </style>
 </head>
@@ -246,7 +248,7 @@ function renderModalItems(){
       '<td><input class="cellIn" value="'+esc(it.name)+'" onchange="editModalItem('+i+',\'name\',this.value)"></td>'+
       '<td><input class="cellIn" value="'+esc(it.unit||'')+'" onchange="editModalItem('+i+',\'unit\',this.value)"></td>'+
       '<td><input class="cellIn" type="number" step="any" value="'+(it.price!=null?it.price:'')+'" onchange="editModalItem('+i+',\'price\',this.value)"></td>'+
-      '<td><input class="cellIn" type="number" step="any" value="'+(it.pct!=null?Math.round(it.pct*1000)/10:'')+'" onchange="editModalItem('+i+',\'pctPercent\',this.value)"> %</td>'+
+      '<td><span class="cellPct"><input class="cellIn" type="number" step="any" value="'+(it.pct!=null?Math.round(it.pct*1000)/10:'')+'" onchange="editModalItem('+i+',\'pctPercent\',this.value)">%</span></td>'+
       '<td><input class="cellIn" type="number" step="1" min="0" value="'+(it.qty!=null?it.qty:'')+'" onchange="editModalItem('+i+',\'qty\',this.value)"></td>'+
       '<td>'+calcNewPrice(it.price, it.pct)+'</td>'+
       '<td><button class="btn danger" onclick="delModalItem('+i+')">ลบ</button></td></tr>'
