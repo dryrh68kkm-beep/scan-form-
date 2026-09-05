@@ -154,9 +154,9 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
 <div class="toast" id="toast"></div>
 
 <script src="vendor/jszip.min.js"></script>
-<script src="cf-config.js?v=20260905-0627"></script>
-<script src="js/cfdb.js?v=20260905-0627"></script>
-<script src="js/export.js?v=20260905-0627"></script>
+<script src="cf-config.js?v=20260905-1200"></script>
+<script src="js/cfdb.js?v=20260905-1200"></script>
+<script src="js/export.js?v=20260905-1200"></script>
 <script>
 const $ = id => document.getElementById(id);
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show');
@@ -283,7 +283,7 @@ window.deleteDocument = async function(){
     toast('ลบเอกสาร '+D.modalDoc._id+' ทิ้งถาวรแล้ว');
     closeModal();
     loadDocs();
-  }catch(e){ toast('ลบไม่สำเร็จ — ตรวจการเชื่อมต่อ'); }
+  }catch(e){ console.error('deleteDocument failed:', e); toast('ลบไม่สำเร็จ — ตรวจการเชื่อมต่อ'); }
 };
 async function saveModalMeta(){
   if(!D.modalDoc) return;
