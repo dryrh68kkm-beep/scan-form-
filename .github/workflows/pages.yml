@@ -1,10 +1,12 @@
 name: Deploy GitHub Pages
 
+# ห้ามเพิ่ม branch อื่นในรายการ trigger นี้อีก — ก่อนหน้านี้เคยมี branch พัฒนาอีกตัวอยู่ในรายการด้วย
+# ทำให้ push ไป branch ไหนก็ตามที่ทำงานล่าสุด ชนะไปแปะทับเว็บจริงโดยไม่ขึ้นกับว่า main มีโค้ดใหม่กว่าหรือไม่
+# (สาเหตุที่ UI เก่ากลับมาโผล่ทั้งที่ main อัปเดตแล้ว) ให้ main เป็นแหล่งเดียวที่ deploy ขึ้นเว็บจริงเสมอ
 on:
   push:
     branches:
       - main
-      - claude/sarang-tao-xkp4z7
   workflow_dispatch: {}
 
 permissions:
