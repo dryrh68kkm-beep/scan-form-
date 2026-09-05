@@ -70,7 +70,9 @@ window.fsUpsert = async function (col, id, obj) {
 
 window.fsDelete = async function (col, id) {
   const r = await fetch(cfUrl(col + '/' + encodeURIComponent(id)), { method: 'DELETE' });
-  return r;
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d;
 };
 
 // ไม่มีการเรียกใช้จริงในแอปตอนนี้ (เช็คแล้วทั้ง index.html/desktop.html ไม่ได้ใช้ fsQuery) — ใส่ไว้เผื่ออนาคต

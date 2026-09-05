@@ -91,10 +91,16 @@ export default {
         return json(o);
       }
 
-      if (request.method === 'DELETE') {
-        // ห้ามลบจริงผ่าน client เหมือนกับ firestore.rules เดิม (allow delete: if false;)
-        // ใช้วิธี soft-delete (fsUpdate ตั้ง active:false) แทนในทุกจุดที่แอปเคยเรียก fsDelete
-        return json({ error: { message: 'PERMISSION_DENIED: delete disabled, use soft-delete' } }, 403);
+      if (request.method === 'DELETE' && id) {
+        // อนุญาตลบจริงเฉพาะ collection "documents" ตามที่ขอ (ผู้ดูแลลบเอกสารทิ้งถาวรได้จากหน้าเดสก์ท็อป)
+        // collection อื่น (employees ฯลฯ) ยังบล็อกไว้เหมือนเดิม — ใช้ soft-delete (fsUpdate ตั้ง active:false)
+        if (col !== 'documents') {
+          return json({ error: { message: 'PERMISSION_DENIED: delete disabled for this collection, use soft-delete' } }, 403);
+        }
+        const existing = await env.DB.prepare('SELECT id FROM docstore WHERE col = ? AND id = ?').bind(col, id).first();
+        if (!existing) return json({ error: { message: 'NOT_FOUND' } }, 404);
+        await env.DB.prepare('DELETE FROM docstore WHERE col = ? AND id = ?').bind(col, id).run();
+        return json({ ok: true });
       }
 
       return json({ error: { message: 'unsupported route' } }, 404);

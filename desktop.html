@@ -136,6 +136,7 @@ hr.d{border:none; border-top:1px solid var(--divider); margin:16px 0}
       <button class="btn" onclick="saveModalMeta()">บันทึกการแก้ไข</button>
       <span id="downloadBtns" style="display:flex; gap:10px; flex-wrap:wrap"></span>
       <button class="btn ghost" onclick="closeModal()">ปิด</button>
+      <button class="btn danger" onclick="deleteDocument()">ลบเอกสาร</button>
     </div>
     <p class="tag" id="downloadInfo" style="margin-top:12px"></p>
   </div>
@@ -263,6 +264,18 @@ window.delModalItem = function(i){
   renderModalItems();
 };
 function closeModal(){ $('docModal').classList.remove('show'); D.modalDoc=null; }
+// ลบทิ้งถาวรจริง (ตามที่ขอ) — Worker อนุญาต DELETE เฉพาะ collection "documents" เท่านั้น
+// (employees ยังบล็อกไว้ ใช้ soft-delete ต่อไปตามเดิม) กู้คืนไม่ได้อีกหลังกดยืนยัน
+window.deleteDocument = async function(){
+  if(!D.modalDoc) return;
+  if(!confirm('ลบเอกสาร '+D.modalDoc._id+' ทิ้งถาวร?\nกู้คืนไม่ได้อีก ข้อมูลจะหายจากฐานข้อมูลทันที')) return;
+  try{
+    await window.fsDelete('documents', D.modalDoc._id);
+    toast('ลบเอกสาร '+D.modalDoc._id+' ทิ้งถาวรแล้ว');
+    closeModal();
+    loadDocs();
+  }catch(e){ toast('ลบไม่สำเร็จ — ตรวจการเชื่อมต่อ'); }
+};
 async function saveModalMeta(){
   if(!D.modalDoc) return;
   try{
